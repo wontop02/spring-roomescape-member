@@ -1,6 +1,5 @@
 package roomescape.service;
 
-import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -24,29 +23,30 @@ public class ReservationTimeService {
     private final ReservationTimeRepository reservationTimeRepository;
     private final ThemeRepository themeRepository;
     private final ReservationRepository reservationRepository;
-    private final Clock clock;
 
     public ReservationTimeService(ReservationTimeRepository reservationTimeRepository, ThemeRepository themeRepository,
-                                  ReservationRepository reservationRepository, Clock clock) {
+                                  ReservationRepository reservationRepository) {
         this.reservationTimeRepository = reservationTimeRepository;
         this.themeRepository = themeRepository;
         this.reservationRepository = reservationRepository;
-        this.clock = clock;
+    }
+
+    public ReservationTimes makeReservationTimes() {
+        return new ReservationTimes(reservationTimeRepository.readAll());
     }
 
     @Transactional
-    public ServiceReservationTimeResponse create(ServiceReservationTimeCreateRequest request) {
-        ReservationTimes reservationTimes = new ReservationTimes(readReservationTimes());
-
+    public ServiceReservationTimeResponse create(ReservationTimes reservationTimes,
+                                                 ServiceReservationTimeCreateRequest request) {
         ReservationTime reservationTime = request.toReservationTime();
-        reservationTimes.validateCreate(reservationTime);
+        reservationTimes.create(reservationTime);
 
         ReservationTimeEntity reservationTimeEntity = reservationTimeRepository.create(request.toReservationTime());
         return ServiceReservationTimeResponse.from(reservationTimeEntity);
     }
 
     public List<ServiceReservationTimeResponse> readAll() {
-        return readReservationTimes().stream()
+        return reservationTimeRepository.readAll().stream()
                 .map(ServiceReservationTimeResponse::from)
                 .toList();
     }
@@ -54,9 +54,8 @@ public class ReservationTimeService {
     public List<ServiceReservationTimeAvailabilityResponse> readAvailabilityByDateAndTheme(
             LocalDate date, Long themeId) {
         validateExistTheme(themeId);
-        validateNotPastDate(date);
 
-        List<ReservationTimeEntity> allReservationTimeEntities = readReservationTimes();
+        List<ReservationTimeEntity> allReservationTimeEntities = reservationTimeRepository.readAll();
         List<Long> reservedTimeIdByDateAndTheme = reservationTimeRepository.reservedTimeIdByDateAndTheme(date, themeId);
 
         return allReservationTimeEntities.stream()
@@ -74,12 +73,6 @@ public class ReservationTimeService {
         }
     }
 
-    private void validateNotPastDate(LocalDate date) {
-        if (date.isBefore(LocalDate.now(clock))) {
-            throw new CustomInvalidRequestException(ErrorCode.PAST_RESERVATION_TIME_READ);
-        }
-    }
-
     @Transactional
     public void delete(Long id) {
         validateReferencedTime(id);
@@ -90,9 +83,5 @@ public class ReservationTimeService {
         if (reservationRepository.existByTimeId(id)) {
             throw new CustomInvalidRequestException(ErrorCode.REFERENCED_TIME);
         }
-    }
-
-    private List<ReservationTimeEntity> readReservationTimes() {
-        return reservationTimeRepository.readAll();
     }
 }

@@ -2,10 +2,10 @@ package roomescape.service;
 
 import java.time.Clock;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import roomescape.domain.RankingPeriod;
 import roomescape.domain.Theme;
 import roomescape.exception.CustomInvalidRequestException;
 import roomescape.exception.ErrorCode;
@@ -56,24 +56,11 @@ public class ThemeService {
     }
 
     public List<ServiceThemeResponse> readRanking(LocalDate startDate, LocalDate endDate) {
-        validateRankingPeriod(startDate, endDate);
+        RankingPeriod rankingPeriod = new RankingPeriod(startDate, endDate);
+        rankingPeriod.validatePeriod(LocalDate.now(clock));
 
         return themeRepository.readRanking(startDate, endDate, RANKING_LIMIT).stream()
                 .map(ServiceThemeResponse::from)
                 .toList();
-    }
-
-    private void validateRankingPeriod(LocalDate startDate, LocalDate endDate) {
-        LocalDate localDate = LocalDate.now(clock);
-
-        if (startDate.isAfter(localDate) || endDate.isAfter(localDate)) {
-            throw new CustomInvalidRequestException(ErrorCode.FUTURE_RANKING_PERIOD);
-        }
-        if (startDate.isAfter(endDate)) {
-            throw new CustomInvalidRequestException(ErrorCode.INVALID_RANKING_PERIOD);
-        }
-        if (ChronoUnit.DAYS.between(startDate, endDate) > MAX_RANKING_PERIOD) {
-            throw new CustomInvalidRequestException(ErrorCode.LONG_RANKING_PERIOD);
-        }
     }
 }

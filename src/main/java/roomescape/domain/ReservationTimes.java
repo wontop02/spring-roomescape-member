@@ -1,5 +1,6 @@
 package roomescape.domain;
 
+import java.util.ArrayList;
 import java.util.List;
 import roomescape.entity.ReservationTimeEntity;
 import roomescape.exception.CustomInvalidRequestException;
@@ -10,12 +11,17 @@ public class ReservationTimes {
     private final List<ReservationTime> reservationTimes;
 
     public ReservationTimes(List<ReservationTimeEntity> allReservationTimes) {
-        reservationTimes = allReservationTimes.stream()
+        reservationTimes = new ArrayList<>(allReservationTimes.stream()
                 .map(ReservationTimeEntity::toDomain)
-                .toList();
+                .toList());
+    }
+    
+    public void create(ReservationTime newReservationTime) {
+        validateCreate(newReservationTime);
+        reservationTimes.add(newReservationTime);
     }
 
-    public void validateCreate(ReservationTime newReservationTime) {
+    private void validateCreate(ReservationTime newReservationTime) {
         validateUnique(newReservationTime);
     }
 

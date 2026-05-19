@@ -38,14 +38,14 @@ public class Reservation {
         }
     }
 
-    public void validateNotPast(LocalDateTime localDateTime) {
-        if (isPast(localDateTime)) {
+    public void validateNotPast(LocalDateTime now) {
+        if (isPast(now)) {
             throw new CustomInvalidRequestException(ErrorCode.NOT_ALLOW_PAST_TIME_RESERVATION_CREATE);
         }
     }
 
-    public void validateAvailableModify(LocalDateTime localDateTime) {
-        if (isPast(localDateTime)) {
+    public void validateAvailableModify(LocalDateTime now) {
+        if (isPast(now)) {
             throw new CustomInvalidRequestException(ErrorCode.NOT_ALLOW_PAST_TIME_RESERVATION_MODIFY);
         }
     }
@@ -89,8 +89,4 @@ public class Reservation {
                 && Objects.equals(theme, that.theme);
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(date, time, theme);
-    }
 }
