@@ -9,18 +9,19 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import roomescape.domain.ReservationTime;
+import roomescape.entity.ReservationTimeEntity;
 
-public class ReservationTimeRepositoryTest extends RepositoryTest {
+public class ReservationTimeEntityRepositoryTest extends RepositoryTest {
 
     @Autowired
     private ReservationTimeRepository reservationTimeRepository;
 
     @Test
     void createTest() {
-        ReservationTime reservationTimeWithoutId = new ReservationTime(LocalTime.of(10, 0));
-        ReservationTime reservationTime = reservationTimeRepository.create(reservationTimeWithoutId);
+        ReservationTime reservationTime = new ReservationTime(LocalTime.of(10, 0));
+        ReservationTimeEntity reservationTimeEntity = reservationTimeRepository.create(reservationTime);
 
-        assertThat(reservationTime.getId()).isEqualTo(1L);
+        assertThat(reservationTimeEntity.getId()).isEqualTo(1L);
     }
 
     @Test
@@ -28,7 +29,7 @@ public class ReservationTimeRepositoryTest extends RepositoryTest {
         String sql = "INSERT INTO `reservation_time` (`start_at`) VALUES (?)";
         jdbcTemplate.update(sql, "10:00");
 
-        Optional<ReservationTime> reservationTime = reservationTimeRepository.read(1L);
+        Optional<ReservationTimeEntity> reservationTime = reservationTimeRepository.read(1L);
 
         assertThat(reservationTime.orElseThrow().getId()).isEqualTo(1L);
     }
@@ -39,8 +40,8 @@ public class ReservationTimeRepositoryTest extends RepositoryTest {
         jdbcTemplate.update(sql, "10:00");
         jdbcTemplate.update(sql, "11:00");
 
-        List<ReservationTime> reservationTimes = reservationTimeRepository.readAll();
-        assertThat(reservationTimes.size()).isEqualTo(2);
+        List<ReservationTimeEntity> reservationTimeEntities = reservationTimeRepository.readAll();
+        assertThat(reservationTimeEntities.size()).isEqualTo(2);
     }
 
     @Test

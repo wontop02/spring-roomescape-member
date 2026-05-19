@@ -1,7 +1,7 @@
 package roomescape.service.dto.response;
 
 import java.time.LocalDate;
-import roomescape.domain.Reservation;
+import roomescape.entity.ReservationEntity;
 
 public record ServiceReservationResponse(
         Long id,
@@ -10,7 +10,7 @@ public record ServiceReservationResponse(
         ServiceReservationTimeResponse time,
         ServiceThemeResponse theme
 ) {
-    public static ServiceReservationResponse from(Reservation reservation) {
+    public static ServiceReservationResponse from(ReservationEntity reservation) {
         return new ServiceReservationResponse(
                 reservation.getId(),
                 reservation.getName(),

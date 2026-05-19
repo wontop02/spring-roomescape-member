@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import roomescape.domain.Theme;
+import roomescape.entity.ThemeEntity;
 
 public class ThemeRepositoryTest extends RepositoryTest {
 
@@ -16,10 +17,10 @@ public class ThemeRepositoryTest extends RepositoryTest {
 
     @Test
     void createTest() {
-        Theme themeWithoutId = new Theme("방탈출", "설명", "url.jpg");
-        Theme theme = themeRepository.create(themeWithoutId);
+        Theme theme = new Theme("방탈출", "설명", "url.jpg");
+        ThemeEntity themeEntity = themeRepository.create(theme);
 
-        assertThat(theme.getId()).isEqualTo(1L);
+        assertThat(themeEntity.getId()).isEqualTo(1L);
     }
 
     @Test
@@ -27,9 +28,9 @@ public class ThemeRepositoryTest extends RepositoryTest {
         String sql = "INSERT INTO `theme` (`name`, `description`, `thumbnail_url`) VALUES (?, ?, ?)";
         jdbcTemplate.update(sql, "방탈출1", "방탈출1 설명", "url.jpg");
 
-        Optional<Theme> theme = themeRepository.read(1L);
+        Optional<ThemeEntity> themeEntity = themeRepository.read(1L);
 
-        assertThat(theme.orElseThrow().getId()).isEqualTo(1L);
+        assertThat(themeEntity.orElseThrow().getId()).isEqualTo(1L);
     }
 
     @Test
@@ -38,8 +39,8 @@ public class ThemeRepositoryTest extends RepositoryTest {
         jdbcTemplate.update(sql, "방탈출1", "방탈출1 설명", "url.jpg");
         jdbcTemplate.update(sql, "방탈출2", "방탈출2 설명", "url.jpg");
 
-        List<Theme> themes = themeRepository.readAll();
-        assertThat(themes.size()).isEqualTo(2);
+        List<ThemeEntity> themeEntities = themeRepository.readAll();
+        assertThat(themeEntities.size()).isEqualTo(2);
     }
 
     @Test
@@ -57,10 +58,11 @@ public class ThemeRepositoryTest extends RepositoryTest {
         jdbcTemplate.update(insertReservationSql, "fizz", "2026-05-02", 2L, 1L);
         jdbcTemplate.update(insertReservationSql, "fizz", "2026-05-02", 1L, 2L);
 
-        List<Theme> themes = themeRepository.readRanking(LocalDate.of(2026, 5, 2), LocalDate.of(2026, 5, 3), 2);
+        List<ThemeEntity> themeEntities = themeRepository.readRanking(LocalDate.of(2026, 5, 2),
+                LocalDate.of(2026, 5, 3), 2);
 
-        assertThat(themes.get(0).getId()).isEqualTo(1L);
-        assertThat(themes.get(1).getId()).isEqualTo(2L);
+        assertThat(themeEntities.get(0).getId()).isEqualTo(1L);
+        assertThat(themeEntities.get(1).getId()).isEqualTo(2L);
     }
 
     @Test

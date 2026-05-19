@@ -4,8 +4,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static roomescape.exception.ErrorCode.DUPLICATED_RESERVATION;
 import static roomescape.exception.ErrorCode.NOT_ALLOW_PAST_TIME_RESERVATION_CREATE;
-import static roomescape.exception.ErrorCode.NOT_ALLOW_PAST_TIME_RESERVATION_DELETE;
-import static roomescape.exception.ErrorCode.NOT_ALLOW_PAST_TIME_RESERVATION_UPDATE;
+import static roomescape.exception.ErrorCode.NOT_ALLOW_PAST_TIME_RESERVATION_MODIFY;
 import static roomescape.exception.ErrorCode.NOT_FOUND_RESERVATION;
 import static roomescape.exception.ErrorCode.NOT_FOUND_RESERVATION_TIME;
 import static roomescape.exception.ErrorCode.NOT_FOUND_THEME;
@@ -21,6 +20,8 @@ import org.junit.jupiter.api.Test;
 import roomescape.domain.Reservation;
 import roomescape.domain.ReservationTime;
 import roomescape.domain.Theme;
+import roomescape.entity.ReservationTimeEntity;
+import roomescape.entity.ThemeEntity;
 import roomescape.exception.CustomInvalidRequestException;
 import roomescape.repository.FakeDatabase;
 import roomescape.repository.FakeReservationRepository;
@@ -81,7 +82,7 @@ public class ReservationServiceTest {
 
     @Test
     void createPastReservationExceptionTest() {
-        reservationTimeRepository.create(new ReservationTime(1L, LocalTime.of(10, 0)));
+        reservationTimeRepository.create(new ReservationTime(LocalTime.of(10, 0)));
         themeRepository.create(new Theme("피즈의 모험", "설명", "url.jpg"));
 
         ServiceReservationCreateRequest serviceReservationCreateRequest = new ServiceReservationCreateRequest("fizz",
@@ -109,10 +110,10 @@ public class ReservationServiceTest {
 
     @Test
     void updateNotFoundReservationExceptionTest() {
-        ReservationTime reservationTime = reservationTimeRepository.create(
+        ReservationTimeEntity reservationTimeEntity = reservationTimeRepository.create(
                 new ReservationTime(LocalTime.of(10, 0)));
         ServiceReservationUpdateRequest request = new ServiceReservationUpdateRequest(LocalDate.of(2026, 5, 3),
-                reservationTime.getId());
+                reservationTimeEntity.getId());
 
         assertThatThrownBy(() -> reservationService.update(1L, request))
                 .isInstanceOf(CustomInvalidRequestException.class)
@@ -121,10 +122,12 @@ public class ReservationServiceTest {
 
     @Test
     void updateNotFoundReservationTimeExceptionTest() {
-        ReservationTime reservationTime = reservationTimeRepository.create(
+        ReservationTimeEntity reservationTimeEntity = reservationTimeRepository.create(
                 new ReservationTime(LocalTime.of(10, 0)));
-        Theme theme = themeRepository.create(new Theme("피즈의 모험", "모험 이야기", "url.jpg"));
-        reservationRepository.create(new Reservation("fizz", LocalDate.of(2026, 5, 3), reservationTime, theme));
+        ThemeEntity themeEntity = themeRepository.create(new Theme("피즈의 모험", "모험 이야기", "url.jpg"));
+        Reservation reservation = new Reservation("fizz", LocalDate.of(2026, 5, 3), reservationTimeEntity.toDomain(),
+                themeEntity.toDomain());
+        reservationRepository.create(reservation, reservationTimeEntity, themeEntity);
 
         ServiceReservationUpdateRequest request = new ServiceReservationUpdateRequest(LocalDate.of(2026, 5, 3), 2L);
 
@@ -135,13 +138,15 @@ public class ReservationServiceTest {
 
     @Test
     void updatePastReservationCreateExceptionTest() {
-        ReservationTime reservationTime = reservationTimeRepository.create(
+        ReservationTimeEntity reservationTimeEntity = reservationTimeRepository.create(
                 new ReservationTime(LocalTime.of(10, 0)));
-        Theme theme = themeRepository.create(new Theme("피즈의 모험", "모험 이야기", "url.jpg"));
-        reservationRepository.create(new Reservation("fizz", LocalDate.of(2026, 5, 3), reservationTime, theme));
+        ThemeEntity themeEntity = themeRepository.create(new Theme("피즈의 모험", "모험 이야기", "url.jpg"));
+        Reservation reservation = new Reservation("fizz", LocalDate.of(2026, 5, 3), reservationTimeEntity.toDomain(),
+                themeEntity.toDomain());
+        reservationRepository.create(reservation, reservationTimeEntity, themeEntity);
 
         ServiceReservationUpdateRequest request = new ServiceReservationUpdateRequest(LocalDate.of(2026, 5, 1),
-                reservationTime.getId());
+                reservationTimeEntity.getId());
 
         assertThatThrownBy(() -> reservationService.update(1L, request))
                 .isInstanceOf(CustomInvalidRequestException.class)
@@ -150,32 +155,37 @@ public class ReservationServiceTest {
 
     @Test
     void updatePastReservationUpdateExceptionTest() {
-        ReservationTime reservationTime = reservationTimeRepository.create(
+        ReservationTimeEntity reservationTimeEntity = reservationTimeRepository.create(
                 new ReservationTime(LocalTime.of(10, 0)));
-        Theme theme = themeRepository.create(new Theme("피즈의 모험", "모험 이야기", "url.jpg"));
-        reservationRepository.create(new Reservation("fizz", LocalDate.of(2026, 5, 1), reservationTime, theme));
+        ThemeEntity themeEntity = themeRepository.create(new Theme("피즈의 모험", "모험 이야기", "url.jpg"));
+        Reservation reservation = new Reservation("fizz", LocalDate.of(2026, 5, 1), reservationTimeEntity.toDomain(),
+                themeEntity.toDomain());
+        reservationRepository.create(reservation, reservationTimeEntity, themeEntity);
 
         ServiceReservationUpdateRequest request = new ServiceReservationUpdateRequest(LocalDate.of(2026, 5, 3),
-                reservationTime.getId());
+                reservationTimeEntity.getId());
 
         assertThatThrownBy(() -> reservationService.update(1L, request))
                 .isInstanceOf(CustomInvalidRequestException.class)
-                .hasMessage(NOT_ALLOW_PAST_TIME_RESERVATION_UPDATE.getMessage());
+                .hasMessage(NOT_ALLOW_PAST_TIME_RESERVATION_MODIFY.getMessage());
     }
 
     @Test
     void updateDuplicatedReservationExceptionTest() {
-        ReservationTime reservationTime = reservationTimeRepository.create(
+        ReservationTimeEntity reservationTimeEntity = reservationTimeRepository.create(
                 new ReservationTime(LocalTime.of(10, 0)));
-        Theme theme = themeRepository.create(new Theme("피즈의 모험", "모험 이야기", "url.jpg"));
+        ThemeEntity themeEntity = themeRepository.create(new Theme("피즈의 모험", "모험 이야기", "url.jpg"));
 
-        reservationRepository.create(new Reservation("fizz", LocalDate.of(2026, 5, 3), reservationTime, theme));
-        reservationRepository.create(
-                new Reservation("fizz2", LocalDate.of(2026, 5, 4), reservationTime, theme));
+        Reservation reservation1 = new Reservation("fizz", LocalDate.of(2026, 5, 3), reservationTimeEntity.toDomain(),
+                themeEntity.toDomain());
+        Reservation reservation2 = new Reservation("fizz", LocalDate.of(2026, 5, 4), reservationTimeEntity.toDomain(),
+                themeEntity.toDomain());
+        reservationRepository.create(reservation1, reservationTimeEntity, themeEntity);
+        reservationRepository.create(reservation2, reservationTimeEntity, themeEntity);
 
         ServiceReservationUpdateRequest request = new ServiceReservationUpdateRequest(
                 LocalDate.of(2026, 5, 4),
-                reservationTime.getId());
+                reservationTimeEntity.getId());
 
         assertThatThrownBy(() -> reservationService.update(1L, request))
                 .isInstanceOf(CustomInvalidRequestException.class)
@@ -191,24 +201,26 @@ public class ReservationServiceTest {
 
     @Test
     void deletePastReservationExceptionTest() {
-        ReservationTime reservationTime = reservationTimeRepository.create(new ReservationTime(LocalTime.of(10, 0)));
-        Theme theme = themeRepository.create(new Theme("피즈의 모험", "모험 이야기", "url.jpg"));
-
-        reservationRepository.create(new Reservation("fizz", LocalDate.of(2026, 5, 1), reservationTime, theme));
+        ReservationTimeEntity reservationTimeEntity = reservationTimeRepository.create(
+                new ReservationTime(LocalTime.of(10, 0)));
+        ThemeEntity themeEntity = themeRepository.create(new Theme("피즈의 모험", "모험 이야기", "url.jpg"));
+        Reservation reservation = new Reservation("fizz", LocalDate.of(2026, 5, 1), reservationTimeEntity.toDomain(),
+                themeEntity.toDomain());
+        reservationRepository.create(reservation, reservationTimeEntity, themeEntity);
 
         assertThatThrownBy(() -> reservationService.delete(1L))
                 .isInstanceOf(CustomInvalidRequestException.class)
-                .hasMessage(NOT_ALLOW_PAST_TIME_RESERVATION_DELETE.getMessage());
+                .hasMessage(NOT_ALLOW_PAST_TIME_RESERVATION_MODIFY.getMessage());
     }
 
     @Test
     void createTest() {
-        ReservationTime reservationTime = reservationTimeRepository.create(
+        ReservationTimeEntity reservationTimeEntity = reservationTimeRepository.create(
                 new ReservationTime(LocalTime.of(10, 0)));
         ServiceReservationTimeResponse serviceReservationTimeResponse = ServiceReservationTimeResponse.from(
-                reservationTime);
-        Theme theme = themeRepository.create(new Theme("피즈의 모험", "모험 이야기", "url.jpg"));
-        ServiceThemeResponse serviceThemeResponse = ServiceThemeResponse.from(theme);
+                reservationTimeEntity);
+        ThemeEntity themeEntity = themeRepository.create(new Theme("피즈의 모험", "모험 이야기", "url.jpg"));
+        ServiceThemeResponse serviceThemeResponse = ServiceThemeResponse.from(themeEntity);
 
         ServiceReservationResponse responseDto = reservationService.create(
                 new ServiceReservationCreateRequest("fizz", LocalDate.of(2026, 5, 3), 1L, 1L));
@@ -221,12 +233,12 @@ public class ReservationServiceTest {
 
     @Test
     void readAllTest() {
-        ReservationTime reservationTime = reservationTimeRepository.create(
+        ReservationTimeEntity reservationTimeEntity = reservationTimeRepository.create(
                 new ReservationTime(LocalTime.of(10, 0)));
         ServiceReservationTimeResponse serviceReservationTimeResponse = ServiceReservationTimeResponse.from(
-                reservationTime);
-        Theme theme = themeRepository.create(new Theme("피즈의 모험", "모험 이야기", "url.jpg"));
-        ServiceThemeResponse serviceThemeResponse = ServiceThemeResponse.from(theme);
+                reservationTimeEntity);
+        ThemeEntity themeEntity = themeRepository.create(new Theme("피즈의 모험", "모험 이야기", "url.jpg"));
+        ServiceThemeResponse serviceThemeResponse = ServiceThemeResponse.from(themeEntity);
 
         reservationService.create(new ServiceReservationCreateRequest("fizz", LocalDate.of(2026, 5, 3), 1L, 1L));
         reservationService.create(
@@ -247,11 +259,12 @@ public class ReservationServiceTest {
 
     @Test
     void deleteTest() {
-        ReservationTime reservationTime = reservationTimeRepository.create(
+        ReservationTimeEntity reservationTimeEntity = reservationTimeRepository.create(
                 new ReservationTime(LocalTime.of(10, 0)));
-        Theme theme = themeRepository.create(new Theme("피즈의 모험", "모험 이야기", "url.jpg"));
-
-        reservationRepository.create(new Reservation("fizz", LocalDate.of(2026, 5, 3), reservationTime, theme));
+        ThemeEntity themeEntity = themeRepository.create(new Theme("피즈의 모험", "모험 이야기", "url.jpg"));
+        Reservation reservation = new Reservation("fizz", LocalDate.of(2026, 5, 3), reservationTimeEntity.toDomain(),
+                themeEntity.toDomain());
+        reservationRepository.create(reservation, reservationTimeEntity, themeEntity);
         reservationService.delete(1L);
 
         List<ServiceReservationResponse> response = reservationService.readAll();

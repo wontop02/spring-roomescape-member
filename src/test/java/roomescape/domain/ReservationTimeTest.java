@@ -12,7 +12,7 @@ public class ReservationTimeTest {
 
     @Test
     void timeNullExceptionTest() {
-        assertThatThrownBy(() -> new ReservationTime(1L, null))
+        assertThatThrownBy(() -> new ReservationTime(null))
                 .isInstanceOf(CustomInvalidDomainException.class)
                 .hasMessage(ErrorCode.NOT_ALLOW_TIME_NULL.getMessage());
     }
@@ -22,7 +22,7 @@ public class ReservationTimeTest {
         LocalTime pastTime = LocalTime.of(7, 0);
         LocalTime futureTime = LocalTime.of(15, 0);
 
-        ReservationTime reservationTime = new ReservationTime(1L, LocalTime.of(10, 0));
+        ReservationTime reservationTime = new ReservationTime(LocalTime.of(10, 0));
 
         assertThat(reservationTime.isPast(futureTime)).isTrue();
         assertThat(reservationTime.isPast(pastTime)).isFalse();

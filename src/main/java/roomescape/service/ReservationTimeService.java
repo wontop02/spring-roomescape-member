@@ -2,11 +2,12 @@ package roomescape.service;
 
 import java.time.Clock;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import roomescape.domain.ReservationTime;
+import roomescape.domain.ReservationTimes;
+import roomescape.entity.ReservationTimeEntity;
 import roomescape.exception.CustomInvalidRequestException;
 import roomescape.exception.ErrorCode;
 import roomescape.repository.ReservationRepository;
@@ -35,23 +36,19 @@ public class ReservationTimeService {
 
     @Transactional
     public ServiceReservationTimeResponse create(ServiceReservationTimeCreateRequest request) {
-        validateDuplicatedReservationTime(request.startAt());
+        ReservationTimes reservationTimes = new ReservationTimes(readReservationTimes());
 
-        ReservationTime reservationTime = reservationTimeRepository.create(request.toEntity());
-        return ServiceReservationTimeResponse.from(reservationTime);
+        ReservationTime reservationTime = request.toReservationTime();
+        reservationTimes.validateCreate(reservationTime);
+
+        ReservationTimeEntity reservationTimeEntity = reservationTimeRepository.create(request.toReservationTime());
+        return ServiceReservationTimeResponse.from(reservationTimeEntity);
     }
 
     public List<ServiceReservationTimeResponse> readAll() {
-        List<ReservationTime> reservationTimes = reservationTimeRepository.readAll();
-        return reservationTimes.stream()
+        return readReservationTimes().stream()
                 .map(ServiceReservationTimeResponse::from)
                 .toList();
-    }
-
-    private void validateDuplicatedReservationTime(LocalTime startAt) {
-        if (reservationTimeRepository.existByStartAt(startAt)) {
-            throw new CustomInvalidRequestException(ErrorCode.DUPLICATED_RESERVATION_TIME);
-        }
     }
 
     public List<ServiceReservationTimeAvailabilityResponse> readAvailabilityByDateAndTheme(
@@ -59,10 +56,10 @@ public class ReservationTimeService {
         validateExistTheme(themeId);
         validateNotPastDate(date);
 
-        List<ReservationTime> allReservationTimes = reservationTimeRepository.readAll();
+        List<ReservationTimeEntity> allReservationTimeEntities = readReservationTimes();
         List<Long> reservedTimeIdByDateAndTheme = reservationTimeRepository.reservedTimeIdByDateAndTheme(date, themeId);
 
-        return allReservationTimes.stream()
+        return allReservationTimeEntities.stream()
                 .map(reservationTime -> {
                     if (reservedTimeIdByDateAndTheme.contains(reservationTime.getId())) {
                         return ServiceReservationTimeAvailabilityResponse.from(reservationTime, false);
@@ -93,5 +90,9 @@ public class ReservationTimeService {
         if (reservationRepository.existByTimeId(id)) {
             throw new CustomInvalidRequestException(ErrorCode.REFERENCED_TIME);
         }
+    }
+
+    private List<ReservationTimeEntity> readReservationTimes() {
+        return reservationTimeRepository.readAll();
     }
 }

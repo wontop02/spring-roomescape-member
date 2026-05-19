@@ -4,16 +4,19 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import roomescape.domain.Reservation;
+import roomescape.entity.ReservationEntity;
+import roomescape.entity.ReservationTimeEntity;
+import roomescape.entity.ThemeEntity;
 
 public interface ReservationRepository {
 
-    Reservation create(Reservation reservationWithoutId);
+    ReservationEntity create(Reservation reservation, ReservationTimeEntity timeEntity, ThemeEntity themeEntity);
 
-    Optional<Reservation> readById(Long id);
+    Optional<ReservationEntity> readById(Long id);
 
-    List<Reservation> readByName(String name);
+    List<ReservationEntity> readByName(String name);
 
-    List<Reservation> readAll();
+    List<ReservationEntity> readAll();
 
     void update(Long id, LocalDate date, Long timeId);
 

@@ -3,11 +3,11 @@ package roomescape.repository;
 import static roomescape.repository.FakeReservationRepository.RESERVATION_TABLE;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
-import roomescape.domain.Reservation;
 import roomescape.domain.ReservationTime;
+import roomescape.entity.ReservationEntity;
+import roomescape.entity.ReservationTimeEntity;
 
 public class FakeReservationTimeRepository implements ReservationTimeRepository {
 
@@ -21,21 +21,22 @@ public class FakeReservationTimeRepository implements ReservationTimeRepository 
     }
 
     @Override
-    public ReservationTime create(ReservationTime reservationTimeWithoutId) {
-        ReservationTime reservationTime = ReservationTime.of(++currentId, reservationTimeWithoutId);
-        fakeDatabase.create(RESERVATION_TIME_TABLE, reservationTime.getId(), reservationTime);
+    public ReservationTimeEntity create(ReservationTime reservationTime) {
+        ReservationTimeEntity reservationTimeEntity = new ReservationTimeEntity(++currentId,
+                reservationTime.getStartAt());
+        fakeDatabase.create(RESERVATION_TIME_TABLE, reservationTimeEntity.getId(), reservationTimeEntity);
 
-        return reservationTime;
+        return reservationTimeEntity;
     }
 
     @Override
-    public Optional<ReservationTime> read(Long id) {
-        return Optional.ofNullable(fakeDatabase.read(RESERVATION_TIME_TABLE, id, ReservationTime.class));
+    public Optional<ReservationTimeEntity> read(Long id) {
+        return Optional.ofNullable(fakeDatabase.read(RESERVATION_TIME_TABLE, id, ReservationTimeEntity.class));
     }
 
     @Override
-    public List<ReservationTime> readAll() {
-        return fakeDatabase.readAll(RESERVATION_TIME_TABLE, ReservationTime.class);
+    public List<ReservationTimeEntity> readAll() {
+        return fakeDatabase.readAll(RESERVATION_TIME_TABLE, ReservationTimeEntity.class);
     }
 
     @Override
@@ -45,21 +46,15 @@ public class FakeReservationTimeRepository implements ReservationTimeRepository 
 
     @Override
     public List<Long> reservedTimeIdByDateAndTheme(LocalDate date, Long themeId) {
-        List<Long> reservedTimeId = fakeDatabase.readAll(RESERVATION_TABLE, Reservation.class).stream()
+        List<Long> reservedTimeId = fakeDatabase.readAll(RESERVATION_TABLE, ReservationEntity.class).stream()
                 .filter(reservation -> reservation.getDate().equals(date) && reservation.getTheme().getId()
                         .equals(themeId))
                 .map(reservation -> reservation.getTime().getId())
                 .toList();
 
-        return fakeDatabase.readAll(RESERVATION_TIME_TABLE, ReservationTime.class).stream()
-                .map(ReservationTime::getId)
+        return fakeDatabase.readAll(RESERVATION_TIME_TABLE, ReservationTimeEntity.class).stream()
+                .map(ReservationTimeEntity::getId)
                 .filter(reservedTimeId::contains)
                 .toList();
-    }
-
-    @Override
-    public boolean existByStartAt(LocalTime startAt) {
-        return fakeDatabase.readAll(RESERVATION_TIME_TABLE, ReservationTime.class).stream()
-                .anyMatch(reservationTime -> reservationTime.getStartAt().equals(startAt));
     }
 }

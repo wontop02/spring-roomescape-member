@@ -3,37 +3,24 @@ package roomescape.domain;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Objects;
 import roomescape.exception.CustomInvalidDomainException;
+import roomescape.exception.CustomInvalidRequestException;
 import roomescape.exception.ErrorCode;
 
 public class Reservation {
 
-    private final Long id;
     private final String name;
     private final LocalDate date;
     private final ReservationTime time;
     private final Theme theme;
 
-    public Reservation(Long id, String name, LocalDate date, ReservationTime time, Theme theme) {
-        validate(name, date, time, theme);
-        this.id = id;
-        this.name = name;
-        this.date = date;
-        this.time = time;
-        this.theme = theme;
-    }
-
     public Reservation(String name, LocalDate date, ReservationTime time, Theme theme) {
         validate(name, date, time, theme);
-        this.id = null;
         this.name = name;
         this.date = date;
         this.time = time;
         this.theme = theme;
-    }
-
-    public static Reservation of(Long id, Reservation reservation) {
-        return new Reservation(id, reservation.name, reservation.date, reservation.time, reservation.theme);
     }
 
     private void validate(String name, LocalDate date, ReservationTime time, Theme theme) {
@@ -51,7 +38,19 @@ public class Reservation {
         }
     }
 
-    public boolean isPast(LocalDateTime now) {
+    public void validateNotPast(LocalDateTime localDateTime) {
+        if (isPast(localDateTime)) {
+            throw new CustomInvalidRequestException(ErrorCode.NOT_ALLOW_PAST_TIME_RESERVATION_CREATE);
+        }
+    }
+
+    public void validateAvailableModify(LocalDateTime localDateTime) {
+        if (isPast(localDateTime)) {
+            throw new CustomInvalidRequestException(ErrorCode.NOT_ALLOW_PAST_TIME_RESERVATION_MODIFY);
+        }
+    }
+
+    private boolean isPast(LocalDateTime now) {
         LocalDate nowDate = now.toLocalDate();
         LocalTime nowTime = now.toLocalTime();
 
@@ -62,10 +61,6 @@ public class Reservation {
             return false;
         }
         return time.isPast(nowTime);
-    }
-
-    public Long getId() {
-        return id;
     }
 
     public String getName() {
@@ -82,5 +77,20 @@ public class Reservation {
 
     public Theme getTheme() {
         return theme;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (object == null || getClass() != object.getClass()) {
+            return false;
+        }
+        Reservation that = (Reservation) object;
+        return Objects.equals(date, that.date) && Objects.equals(time, that.time)
+                && Objects.equals(theme, that.theme);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(date, time, theme);
     }
 }

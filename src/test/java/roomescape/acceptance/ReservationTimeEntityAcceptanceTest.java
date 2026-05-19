@@ -5,7 +5,7 @@ import roomescape.acceptance.step.ReservationSteps;
 import roomescape.acceptance.step.ReservationTimeSteps;
 import roomescape.acceptance.step.ThemeSteps;
 
-public class ReservationTimeAcceptanceTest extends AcceptanceTest {
+public class ReservationTimeEntityAcceptanceTest extends AcceptanceTest {
 
     @Test
     void reservationTimeApiSuccessTest() {

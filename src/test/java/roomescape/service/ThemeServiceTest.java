@@ -7,16 +7,19 @@ import static roomescape.exception.ErrorCode.INVALID_RANKING_PERIOD;
 import static roomescape.exception.ErrorCode.LONG_RANKING_PERIOD;
 import static roomescape.exception.ErrorCode.REFERENCED_THEME;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import roomescape.domain.Reservation;
 import roomescape.domain.ReservationTime;
 import roomescape.domain.Theme;
+import roomescape.entity.ReservationTimeEntity;
+import roomescape.entity.ThemeEntity;
 import roomescape.exception.CustomInvalidRequestException;
 import roomescape.repository.FakeDatabase;
 import roomescape.repository.FakeReservationRepository;
@@ -35,6 +38,7 @@ public class ThemeServiceTest {
     private ThemeRepository themeRepository;
     private ReservationTimeRepository reservationTimeRepository;
     private ReservationRepository reservationRepository;
+    private Clock clock;
 
     @BeforeEach
     void beforeEach() {
@@ -43,14 +47,15 @@ public class ThemeServiceTest {
         reservationRepository = new FakeReservationRepository(fakeDatabase);
         reservationTimeRepository = new FakeReservationTimeRepository(fakeDatabase);
         themeRepository = new FakeThemeRepository(fakeDatabase);
+        clock = Clock.fixed(Instant.parse("2026-05-02T00:00:00Z"), ZoneId.of("Asia/Seoul"));
 
-        themeService = new ThemeService(themeRepository, reservationRepository);
+        themeService = new ThemeService(themeRepository, reservationRepository, clock);
     }
 
     @Test
     void readFutureRankingPeriodExceptionTest() {
-        LocalDate startDate = LocalDate.now().plusDays(1);
-        LocalDate endDate = LocalDate.now().plusDays(2);
+        LocalDate startDate = LocalDate.of(2026, 5, 3);
+        LocalDate endDate = LocalDate.of(2026, 5, 4);
 
         assertThatThrownBy(() -> themeService.readRanking(startDate, endDate))
                 .isInstanceOf(CustomInvalidRequestException.class)
@@ -59,19 +64,18 @@ public class ThemeServiceTest {
 
     @Test
     void readInvalidRankingPeriodExceptionTest() {
-        LocalDate startDate = LocalDate.now();
-        LocalDate endDate = LocalDate.now().minusDays(1);
+        LocalDate startDate = LocalDate.of(2026, 5, 2);
+        LocalDate endDate = LocalDate.of(2026, 5, 1);
 
         assertThatThrownBy(() -> themeService.readRanking(startDate, endDate))
                 .isInstanceOf(CustomInvalidRequestException.class)
                 .hasMessage(INVALID_RANKING_PERIOD.getMessage());
     }
 
-    @ParameterizedTest
-    @ValueSource(ints = {367, 1000})
-    void readLongRankingPeriodExceptionTest(int period) {
-        LocalDate startDate = LocalDate.now().minusDays(period);
-        LocalDate endDate = LocalDate.now();
+    @Test
+    void readLongRankingPeriodExceptionTest() {
+        LocalDate startDate = LocalDate.of(2024, 5, 1);
+        LocalDate endDate = LocalDate.of(2026, 5, 2);
 
         assertThatThrownBy(() -> themeService.readRanking(startDate, endDate))
                 .isInstanceOf(CustomInvalidRequestException.class)
@@ -80,10 +84,13 @@ public class ThemeServiceTest {
 
     @Test
     void deleteReferencedThemeExceptionTest() {
-        ReservationTime reservationTime = reservationTimeRepository.create(new ReservationTime(LocalTime.of(10, 0)));
-        Theme theme = themeRepository.create(new Theme("방탈출1", "방탈출1 설명", "url.jpg"));
+        ReservationTimeEntity reservationTimeEntity = reservationTimeRepository.create(
+                new ReservationTime(LocalTime.of(10, 0)));
+        ThemeEntity themeEntity = themeRepository.create(new Theme("방탈출1", "방탈출1 설명", "url.jpg"));
+        Reservation reservation = new Reservation("fizz", LocalDate.of(2026, 5, 3), reservationTimeEntity.toDomain(),
+                themeEntity.toDomain());
 
-        reservationRepository.create(new Reservation("fizz", LocalDate.now().plusDays(1), reservationTime, theme));
+        reservationRepository.create(reservation, reservationTimeEntity, themeEntity);
 
         assertThatThrownBy(() -> themeService.delete(1L))
                 .isInstanceOf(CustomInvalidRequestException.class)
@@ -155,16 +162,24 @@ public class ThemeServiceTest {
 
     @Test
     void readRankingTest() {
-        ReservationTime reservationTime = reservationTimeRepository.create(new ReservationTime(LocalTime.of(10, 0)));
-        Theme theme1 = themeRepository.create(new Theme("피즈의 모험", "모험 이야기", "url.jpg"));
-        Theme theme2 = themeRepository.create(new Theme("피즈의 모험2", "모험 이야기", "url.jpg"));
+        ReservationTimeEntity reservationTimeEntity = reservationTimeRepository.create(
+                new ReservationTime(LocalTime.of(10, 0)));
+        ThemeEntity themeEntity1 = themeRepository.create(new Theme("피즈의 모험", "모험 이야기", "url.jpg"));
+        ThemeEntity themeEntity2 = themeRepository.create(new Theme("피즈의 모험2", "모험 이야기", "url.jpg"));
 
-        reservationRepository.create(new Reservation("fizz", LocalDate.of(2026, 5, 2), reservationTime, theme1));
-        reservationRepository.create(new Reservation("fizz", LocalDate.of(2026, 5, 4), reservationTime, theme1));
-        reservationRepository.create(new Reservation("fizz2", LocalDate.of(2026, 5, 4), reservationTime, theme2));
+        Reservation reservation1 = new Reservation("fizz", LocalDate.of(2026, 4, 29), reservationTimeEntity.toDomain(),
+                themeEntity1.toDomain());
+        Reservation reservation2 = new Reservation("fizz", LocalDate.of(2026, 5, 1), reservationTimeEntity.toDomain(),
+                themeEntity1.toDomain());
+        Reservation reservation3 = new Reservation("fizz", LocalDate.of(2026, 5, 2), reservationTimeEntity.toDomain(),
+                themeEntity2.toDomain());
 
-        List<ServiceThemeResponse> responses = themeService.readRanking(LocalDate.of(2026, 5, 1),
-                LocalDate.of(2026, 5, 7));
+        reservationRepository.create(reservation1, reservationTimeEntity, themeEntity1);
+        reservationRepository.create(reservation2, reservationTimeEntity, themeEntity1);
+        reservationRepository.create(reservation3, reservationTimeEntity, themeEntity2);
+
+        List<ServiceThemeResponse> responses = themeService.readRanking(LocalDate.of(2026, 4, 29),
+                LocalDate.of(2026, 5, 2));
 
         assertThat(responses.get(0).name()).isEqualTo("피즈의 모험");
         assertThat(responses.get(1).name()).isEqualTo("피즈의 모험2");

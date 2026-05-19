@@ -18,6 +18,8 @@ import org.junit.jupiter.api.Test;
 import roomescape.domain.Reservation;
 import roomescape.domain.ReservationTime;
 import roomescape.domain.Theme;
+import roomescape.entity.ReservationTimeEntity;
+import roomescape.entity.ThemeEntity;
 import roomescape.exception.CustomInvalidRequestException;
 import roomescape.repository.FakeDatabase;
 import roomescape.repository.FakeReservationRepository;
@@ -72,7 +74,7 @@ public class ReservationTimeServiceTest {
     @Test
     void readAvailabilityPastDateExceptionTest() {
         reservationTimeRepository.create(new ReservationTime(LocalTime.of(10, 0)));
-        Theme theme = themeRepository.create(new Theme("방탈출1", "방탈출1 설명", "url.jpg"));
+        ThemeEntity theme = themeRepository.create(new Theme("방탈출1", "방탈출1 설명", "url.jpg"));
 
         LocalDate beforeDate = LocalDate.of(2026, 5, 1);
 
@@ -83,10 +85,13 @@ public class ReservationTimeServiceTest {
 
     @Test
     void deleteReferencedReservationTimeExceptionTest() {
-        ReservationTime reservationTime = reservationTimeRepository.create(new ReservationTime(LocalTime.of(10, 0)));
-        Theme theme = themeRepository.create(new Theme("방탈출1", "방탈출1 설명", "url.jpg"));
+        ReservationTimeEntity reservationTimeEntity = reservationTimeRepository.create(
+                new ReservationTime(LocalTime.of(10, 0)));
+        ThemeEntity themeEntity = themeRepository.create(new Theme("방탈출1", "방탈출1 설명", "url.jpg"));
+        Reservation reservation = new Reservation("fizz", LocalDate.of(2026, 5, 3), reservationTimeEntity.toDomain(),
+                themeEntity.toDomain());
 
-        reservationRepository.create(new Reservation("fizz", LocalDate.of(2026, 5, 3), reservationTime, theme));
+        reservationRepository.create(reservation, reservationTimeEntity, themeEntity);
 
         assertThatThrownBy(() -> reservationTimeService.delete(1L))
                 .isInstanceOf(CustomInvalidRequestException.class)
@@ -114,14 +119,17 @@ public class ReservationTimeServiceTest {
 
     @Test
     void readAvailabilityByDateAndThemeTest() {
-        ReservationTime reservationTime = reservationTimeRepository.create(new ReservationTime(LocalTime.of(10, 0)));
-        reservationTimeRepository.create(reservationTime);
-        Theme theme = themeRepository.create(new Theme("방탈출1", "방탈출1 설명", "url.jpg"));
+        ReservationTimeEntity reservationTimeEntity = reservationTimeRepository.create(
+                new ReservationTime(LocalTime.of(10, 0)));
+        reservationTimeRepository.create(new ReservationTime(LocalTime.of(11, 0)));
+        ThemeEntity themeEntity = themeRepository.create(new Theme("방탈출1", "방탈출1 설명", "url.jpg"));
 
-        reservationRepository.create(new Reservation("fizz", LocalDate.now(clock), reservationTime, theme));
+        Reservation reservation = new Reservation("fizz", LocalDate.now(clock), reservationTimeEntity.toDomain(),
+                themeEntity.toDomain());
+        reservationRepository.create(reservation, reservationTimeEntity, themeEntity);
 
         List<ServiceReservationTimeAvailabilityResponse> responses = reservationTimeService.readAvailabilityByDateAndTheme(
-                LocalDate.now(clock), theme.getId());
+                LocalDate.now(clock), themeEntity.getId());
 
         assertThat(responses.get(0).available()).isFalse();
         assertThat(responses.get(1).available()).isTrue();
@@ -132,8 +140,8 @@ public class ReservationTimeServiceTest {
         reservationTimeRepository.create(new ReservationTime(LocalTime.of(10, 0)));
         reservationTimeService.delete(1L);
 
-        List<ReservationTime> reservationTimes = reservationTimeRepository.readAll();
+        List<ReservationTimeEntity> reservationTimeEntities = reservationTimeRepository.readAll();
 
-        assertThat(reservationTimes.size()).isEqualTo(0);
+        assertThat(reservationTimeEntities.size()).isEqualTo(0);
     }
 }

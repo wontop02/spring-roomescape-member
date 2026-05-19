@@ -11,6 +11,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import roomescape.domain.Theme;
+import roomescape.entity.ThemeEntity;
 
 @Primary
 @Repository
@@ -23,25 +24,25 @@ public class JdbcThemeRepository implements ThemeRepository {
     }
 
     @Override
-    public Theme create(Theme themeWithoutId) {
+    public ThemeEntity create(Theme theme) {
         String sql = "INSERT INTO `theme`(`name`, `description`, `thumbnail_url`) VALUES (?, ?, ?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
             PreparedStatement preparedStatement = connection.prepareStatement(sql, new String[]{"id"});
-            preparedStatement.setString(1, themeWithoutId.getName());
-            preparedStatement.setString(2, themeWithoutId.getDescription());
-            preparedStatement.setString(3, themeWithoutId.getThumbnailUrl());
+            preparedStatement.setString(1, theme.getName());
+            preparedStatement.setString(2, theme.getDescription());
+            preparedStatement.setString(3, theme.getThumbnailUrl());
 
             return preparedStatement;
         }, keyHolder);
 
         Long id = keyHolder.getKey().longValue();
-        return Theme.of(id, themeWithoutId);
+        return new ThemeEntity(id, theme.getName(), theme.getDescription(), theme.getThumbnailUrl());
     }
 
     @Override
-    public Optional<Theme> read(Long id) {
+    public Optional<ThemeEntity> read(Long id) {
         String sql = "SELECT * FROM `theme` WHERE `id` = (?)";
 
         try {
@@ -50,7 +51,7 @@ public class JdbcThemeRepository implements ThemeRepository {
                         String name = resultSet.getString("name");
                         String description = resultSet.getString("description");
                         String thumbnailUrl = resultSet.getString("thumbnail_url");
-                        return new Theme(id, name, description, thumbnailUrl);
+                        return new ThemeEntity(id, name, description, thumbnailUrl);
                     }, id));
         } catch (EmptyResultDataAccessException exception) {
             return Optional.empty();
@@ -58,7 +59,7 @@ public class JdbcThemeRepository implements ThemeRepository {
     }
 
     @Override
-    public List<Theme> readAll() {
+    public List<ThemeEntity> readAll() {
         String sql = "SELECT * FROM `theme`";
 
         return jdbcTemplate.query(
@@ -68,7 +69,7 @@ public class JdbcThemeRepository implements ThemeRepository {
                     String name = resultSet.getString("name");
                     String description = resultSet.getString("description");
                     String thumbnailUrl = resultSet.getString("thumbnail_url");
-                    return new Theme(id, name, description, thumbnailUrl);
+                    return new ThemeEntity(id, name, description, thumbnailUrl);
                 }
         );
     }
@@ -81,7 +82,7 @@ public class JdbcThemeRepository implements ThemeRepository {
     }
 
     @Override
-    public List<Theme> readRanking(LocalDate startDate, LocalDate endDate, int limit) {
+    public List<ThemeEntity> readRanking(LocalDate startDate, LocalDate endDate, int limit) {
         String sql = "SELECT th.id AS theme_id, th.name, th.description, "
                 + "th.thumbnail_url, COUNT(r.id) AS reservation_count "
                 + "FROM theme th "
@@ -99,7 +100,7 @@ public class JdbcThemeRepository implements ThemeRepository {
                     String name = resultSet.getString("name");
                     String description = resultSet.getString("description");
                     String thumbnailUrl = resultSet.getString("thumbnail_url");
-                    return new Theme(id, name, description, thumbnailUrl);
+                    return new ThemeEntity(id, name, description, thumbnailUrl);
                 },
                 startDate,
                 endDate,

@@ -1,22 +1,20 @@
 package roomescape.repository;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import roomescape.domain.ReservationTime;
+import roomescape.entity.ReservationTimeEntity;
 
 public interface ReservationTimeRepository {
 
-    ReservationTime create(ReservationTime reservationTimeWithoutId);
+    ReservationTimeEntity create(ReservationTime reservationTime);
 
-    Optional<ReservationTime> read(Long id);
+    Optional<ReservationTimeEntity> read(Long id);
 
-    List<ReservationTime> readAll();
+    List<ReservationTimeEntity> readAll();
 
     void delete(Long id);
 
     List<Long> reservedTimeIdByDateAndTheme(LocalDate date, Long themeId);
-
-    boolean existByStartAt(LocalTime startAt);
 }

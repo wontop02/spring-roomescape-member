@@ -14,8 +14,9 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import roomescape.domain.Reservation;
-import roomescape.domain.ReservationTime;
-import roomescape.domain.Theme;
+import roomescape.entity.ReservationEntity;
+import roomescape.entity.ReservationTimeEntity;
+import roomescape.entity.ThemeEntity;
 
 @Primary
 @Repository
@@ -28,26 +29,27 @@ public class JdbcReservationRepository implements ReservationRepository {
     }
 
     @Override
-    public Reservation create(Reservation reservationWithoutId) {
+    public ReservationEntity create(Reservation reservation, ReservationTimeEntity timeEntity,
+                                    ThemeEntity themeEntity) {
         String sql = "INSERT INTO `reservation`(`name`, `date`, `time_id`, `theme_id`) VALUES (?, ?, ?, ?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
             PreparedStatement preparedStatement = connection.prepareStatement(sql, new String[]{"id"});
-            preparedStatement.setString(1, reservationWithoutId.getName());
-            preparedStatement.setDate(2, Date.valueOf(reservationWithoutId.getDate()));
-            preparedStatement.setLong(3, reservationWithoutId.getTime().getId());
-            preparedStatement.setLong(4, reservationWithoutId.getTheme().getId());
+            preparedStatement.setString(1, reservation.getName());
+            preparedStatement.setDate(2, Date.valueOf(reservation.getDate()));
+            preparedStatement.setLong(3, timeEntity.getId());
+            preparedStatement.setLong(4, themeEntity.getId());
 
             return preparedStatement;
         }, keyHolder);
 
         Long id = keyHolder.getKey().longValue();
-        return Reservation.of(id, reservationWithoutId);
+        return new ReservationEntity(id, reservation.getName(), reservation.getDate(), timeEntity, themeEntity);
     }
 
     @Override
-    public Optional<Reservation> readById(Long id) {
+    public Optional<ReservationEntity> readById(Long id) {
         String sql =
                 "SELECT r.id, r.name, r.date, t.id as time_id, t.start_at as time_value, th.id as theme_id, th.name as theme_name, th.description as theme_description, th.thumbnail_url as theme_thumbnail_url "
                         + "FROM `reservation` r "
@@ -64,7 +66,7 @@ public class JdbcReservationRepository implements ReservationRepository {
     }
 
     @Override
-    public List<Reservation> readByName(String name) {
+    public List<ReservationEntity> readByName(String name) {
         String sql =
                 "SELECT r.id, r.name, r.date, t.id as time_id, t.start_at as time_value, th.id as theme_id, th.name as theme_name, th.description as theme_description, th.thumbnail_url as theme_thumbnail_url "
                         + "FROM `reservation` r "
@@ -76,7 +78,7 @@ public class JdbcReservationRepository implements ReservationRepository {
     }
 
     @Override
-    public List<Reservation> readAll() {
+    public List<ReservationEntity> readAll() {
         String sql =
                 "SELECT r.id, r.name, r.date, t.id as time_id, t.start_at as time_value, th.id as theme_id, th.name as theme_name, th.description as theme_description, th.thumbnail_url as theme_thumbnail_url "
                         + "FROM `reservation` r "
@@ -93,7 +95,7 @@ public class JdbcReservationRepository implements ReservationRepository {
         jdbcTemplate.update(sql, date, timeId, id);
     }
 
-    private static RowMapper<Reservation> reservationRowMapper() {
+    private static RowMapper<ReservationEntity> reservationRowMapper() {
         return (resultSet, rowNum) -> {
             Long id = resultSet.getLong("id");
             String name = resultSet.getString("name");
@@ -105,9 +107,9 @@ public class JdbcReservationRepository implements ReservationRepository {
             String themeDescription = resultSet.getString("theme_description");
             String themeThumbnailUrl = resultSet.getString("theme_thumbnail_url");
 
-            ReservationTime reservationTime = new ReservationTime(timeId, timeValue);
-            Theme theme = new Theme(themeId, themeName, themeDescription, themeThumbnailUrl);
-            return new Reservation(id, name, date, reservationTime, theme);
+            ReservationTimeEntity reservationTimeEntity = new ReservationTimeEntity(timeId, timeValue);
+            ThemeEntity themeEntity = new ThemeEntity(themeId, themeName, themeDescription, themeThumbnailUrl);
+            return new ReservationEntity(id, name, date, reservationTimeEntity, themeEntity);
         };
     }
 

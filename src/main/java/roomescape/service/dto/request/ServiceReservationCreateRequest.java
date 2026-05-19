@@ -11,7 +11,7 @@ public record ServiceReservationCreateRequest(
         Long timeId,
         Long themeId
 ) {
-    public Reservation toEntity(ReservationTime reservationTime, Theme theme) {
+    public Reservation toReservation(ReservationTime reservationTime, Theme theme) {
         return new Reservation(name, date, reservationTime, theme);
     }
 }

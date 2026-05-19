@@ -6,8 +6,10 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import roomescape.domain.Reservation;
-import roomescape.domain.ReservationTime;
-import roomescape.domain.Theme;
+import roomescape.domain.Reservations;
+import roomescape.entity.ReservationEntity;
+import roomescape.entity.ReservationTimeEntity;
+import roomescape.entity.ThemeEntity;
 import roomescape.exception.CustomInvalidRequestException;
 import roomescape.exception.ErrorCode;
 import roomescape.repository.ReservationRepository;
@@ -37,47 +39,36 @@ public class ReservationService {
 
     @Transactional
     public ServiceReservationResponse create(ServiceReservationCreateRequest request) {
-        ReservationTime reservationTime = readReservationTime(request.timeId());
-        Theme theme = readTheme(request.themeId());
+        Reservations reservations = new Reservations(readReservations());
 
-        Reservation reservationWithoutId = request.toEntity(reservationTime, theme);
-        validateCreateReservation(reservationWithoutId);
+        ReservationTimeEntity reservationTimeEntity = readReservationTime(request.timeId());
+        ThemeEntity themeEntity = readTheme(request.themeId());
 
-        Reservation reservation = reservationRepository.create(reservationWithoutId);
+        Reservation reservation = request.toReservation(reservationTimeEntity.toDomain(), themeEntity.toDomain());
+        reservations.validateCreate(reservation, LocalDateTime.now(clock));
 
-        return ServiceReservationResponse.from(reservation);
+        ReservationEntity reservationEntity = reservationRepository.create(reservation, reservationTimeEntity,
+                themeEntity);
+
+        return ServiceReservationResponse.from(reservationEntity);
     }
 
-    private ReservationTime readReservationTime(Long timeId) {
+    private List<ReservationEntity> readReservations() {
+        return reservationRepository.readAll();
+    }
+
+    private ReservationTimeEntity readReservationTime(Long timeId) {
         return reservationTimeRepository.read(timeId)
                 .orElseThrow(() -> new CustomInvalidRequestException(ErrorCode.NOT_FOUND_RESERVATION_TIME));
     }
 
-    private Theme readTheme(Long themeId) {
+    private ThemeEntity readTheme(Long themeId) {
         return themeRepository.read(themeId)
                 .orElseThrow(() -> new CustomInvalidRequestException(ErrorCode.NOT_FOUND_THEME));
     }
 
-    private void validateCreateReservation(Reservation reservation) {
-        validatePastReservation(reservation, ErrorCode.NOT_ALLOW_PAST_TIME_RESERVATION_CREATE);
-        validateDuplicatedReservation(reservation);
-    }
-
-    private void validatePastReservation(Reservation reservation, ErrorCode errorCode) {
-        if (reservation.isPast(LocalDateTime.now(clock))) {
-            throw new CustomInvalidRequestException(errorCode);
-        }
-    }
-
-    private void validateDuplicatedReservation(Reservation reservation) {
-        if (reservationRepository.existByDateAndTimeIdAndThemeId(reservation.getDate(), reservation.getTime().getId(),
-                reservation.getTheme().getId())) {
-            throw new CustomInvalidRequestException(ErrorCode.DUPLICATED_RESERVATION);
-        }
-    }
-
     public List<ServiceReservationResponse> readByName(String name) {
-        List<Reservation> reservations = reservationRepository.readByName(name);
+        List<ReservationEntity> reservations = reservationRepository.readByName(name);
 
         return reservations.stream()
                 .map(ServiceReservationResponse::from)
@@ -85,46 +76,40 @@ public class ReservationService {
     }
 
     public List<ServiceReservationResponse> readAll() {
-        List<Reservation> reservations = reservationRepository.readAll();
-
-        return reservations.stream()
+        return readReservations().stream()
                 .map(ServiceReservationResponse::from)
                 .toList();
     }
 
     @Transactional
     public ServiceReservationResponse update(Long id, ServiceReservationUpdateRequest request) {
-        Reservation beforeReservation = readReservation(id);
-        validatePastReservation(beforeReservation, ErrorCode.NOT_ALLOW_PAST_TIME_RESERVATION_UPDATE);
+        ReservationTimeEntity newReservationTimeEntity = readReservationTime(request.timeId());
 
-        ReservationTime reservationTime = readReservationTime(request.timeId());
+        ReservationEntity beforeReservationEntity = readReservation(id);
+        Reservation beforeReservation = beforeReservationEntity.toDomain();
 
-        Reservation newReservation = request.toEntity(beforeReservation, reservationTime);
+        Reservation newReservation = request.toReservation(beforeReservation,
+                newReservationTimeEntity.toDomain());
 
-        boolean sameWithBefore = beforeReservation.getDate() == request.date()
-                && beforeReservation.getTime().getId().equals(request.timeId());
-        if (!sameWithBefore) {
-            validateDuplicatedReservation(newReservation);
-        }
-        validatePastReservation(newReservation, ErrorCode.NOT_ALLOW_PAST_TIME_RESERVATION_CREATE);
+        Reservations reservations = new Reservations(readReservations());
+        reservations.validateUpdate(beforeReservation, newReservation, LocalDateTime.now(clock));
 
         reservationRepository.update(id, request.date(), request.timeId());
+        ReservationEntity reservationEntity = new ReservationEntity(id, beforeReservation.getName(), request.date(),
+                newReservationTimeEntity, beforeReservationEntity.getTheme());
 
-        return ServiceReservationResponse.from(newReservation);
+        return ServiceReservationResponse.from(reservationEntity);
     }
 
-    private Reservation readReservation(Long reservationId) {
+    private ReservationEntity readReservation(Long reservationId) {
         return reservationRepository.readById(reservationId)
                 .orElseThrow(() -> new CustomInvalidRequestException(ErrorCode.NOT_FOUND_RESERVATION));
     }
 
     @Transactional
     public void delete(Long id) {
-        Reservation reservation = readReservation(id);
-        if (reservation.isPast(LocalDateTime.now(clock))) {
-            throw new CustomInvalidRequestException(ErrorCode.NOT_ALLOW_PAST_TIME_RESERVATION_DELETE);
-        }
-
+        Reservation reservation = readReservation(id).toDomain();
+        reservation.validateAvailableModify(LocalDateTime.now(clock));
         reservationRepository.delete(id);
     }
 }
