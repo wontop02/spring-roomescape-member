@@ -37,24 +37,22 @@ public class ReservationService {
         this.clock = clock;
     }
 
-    @Transactional
-    public ServiceReservationResponse create(ServiceReservationCreateRequest request) {
-        Reservations reservations = new Reservations(readReservations());
+    public Reservations makeReservations() {
+        return new Reservations(reservationRepository.readAll());
+    }
 
+    @Transactional
+    public ServiceReservationResponse create(Reservations reservations, ServiceReservationCreateRequest request) {
         ReservationTimeEntity reservationTimeEntity = readReservationTime(request.timeId());
         ThemeEntity themeEntity = readTheme(request.themeId());
 
         Reservation reservation = request.toReservation(reservationTimeEntity.toDomain(), themeEntity.toDomain());
-        reservations.validateCreate(reservation, LocalDateTime.now(clock));
+        reservations.create(reservation, LocalDateTime.now(clock));
 
         ReservationEntity reservationEntity = reservationRepository.create(reservation, reservationTimeEntity,
                 themeEntity);
 
         return ServiceReservationResponse.from(reservationEntity);
-    }
-
-    private List<ReservationEntity> readReservations() {
-        return reservationRepository.readAll();
     }
 
     private ReservationTimeEntity readReservationTime(Long timeId) {
@@ -68,21 +66,20 @@ public class ReservationService {
     }
 
     public List<ServiceReservationResponse> readByName(String name) {
-        List<ReservationEntity> reservations = reservationRepository.readByName(name);
-
-        return reservations.stream()
+        return reservationRepository.readByName(name).stream()
                 .map(ServiceReservationResponse::from)
                 .toList();
     }
 
     public List<ServiceReservationResponse> readAll() {
-        return readReservations().stream()
+        return reservationRepository.readAll().stream()
                 .map(ServiceReservationResponse::from)
                 .toList();
     }
 
     @Transactional
-    public ServiceReservationResponse update(Long id, ServiceReservationUpdateRequest request) {
+    public ServiceReservationResponse update(Reservations reservations, Long id,
+                                             ServiceReservationUpdateRequest request) {
         ReservationTimeEntity newReservationTimeEntity = readReservationTime(request.timeId());
 
         ReservationEntity beforeReservationEntity = readReservation(id);
@@ -91,8 +88,7 @@ public class ReservationService {
         Reservation newReservation = request.toReservation(beforeReservation,
                 newReservationTimeEntity.toDomain());
 
-        Reservations reservations = new Reservations(readReservations());
-        reservations.validateUpdate(beforeReservation, newReservation, LocalDateTime.now(clock));
+        reservations.update(beforeReservation, newReservation, LocalDateTime.now(clock));
 
         reservationRepository.update(id, request.date(), request.timeId());
         ReservationEntity reservationEntity = new ReservationEntity(id, beforeReservation.getName(), request.date(),
@@ -107,9 +103,9 @@ public class ReservationService {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(Reservations reservations, Long id) {
         Reservation reservation = readReservation(id).toDomain();
-        reservation.validateAvailableModify(LocalDateTime.now(clock));
+        reservations.delete(reservation, LocalDateTime.now(clock));
         reservationRepository.delete(id);
     }
 }
