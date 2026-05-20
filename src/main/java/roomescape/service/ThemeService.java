@@ -8,8 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import roomescape.domain.RankingPeriod;
 import roomescape.domain.Reservations;
 import roomescape.domain.Theme;
-import roomescape.exception.CustomInvalidRequestException;
-import roomescape.exception.ErrorCode;
+import roomescape.exception.custom.CannotDeleteThemeInUseException;
 import roomescape.repository.ReservationRepository;
 import roomescape.repository.ThemeRepository;
 import roomescape.service.dto.request.ServiceThemeCreateRequest;
@@ -52,7 +51,7 @@ public class ThemeService {
 
     private void validateReferencedTheme(Long id) {
         if (reservationRepository.existByThemeId(id)) {
-            throw new CustomInvalidRequestException(ErrorCode.REFERENCED_THEME);
+            throw new CannotDeleteThemeInUseException();
         }
     }
 

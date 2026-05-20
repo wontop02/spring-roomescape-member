@@ -12,8 +12,8 @@ import roomescape.domain.Reservations;
 import roomescape.domain.Theme;
 import roomescape.entity.ReservationTimeEntity;
 import roomescape.entity.ThemeEntity;
-import roomescape.exception.CustomInvalidRequestException;
-import roomescape.exception.ErrorCode;
+import roomescape.exception.custom.CannotDeleteReservationTimeInUseException;
+import roomescape.exception.custom.ThemeNotExistsException;
 import roomescape.repository.ReservationRepository;
 import roomescape.repository.ReservationTimeRepository;
 import roomescape.repository.ThemeRepository;
@@ -76,7 +76,7 @@ public class ReservationTimeService {
 
     private ThemeEntity readTheme(Long themeId) {
         return themeRepository.read(themeId)
-                .orElseThrow(() -> new CustomInvalidRequestException(ErrorCode.NOT_FOUND_THEME));
+                .orElseThrow(ThemeNotExistsException::new);
     }
 
     @Transactional
@@ -87,7 +87,7 @@ public class ReservationTimeService {
 
     private void validateReferencedTime(Long id) {
         if (reservationRepository.existByTimeId(id)) {
-            throw new CustomInvalidRequestException(ErrorCode.REFERENCED_TIME);
+            throw new CannotDeleteReservationTimeInUseException();
         }
     }
 }

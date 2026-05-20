@@ -8,8 +8,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import roomescape.entity.ReservationEntity;
-import roomescape.exception.CustomInvalidRequestException;
-import roomescape.exception.ErrorCode;
+import roomescape.exception.custom.ReservationAlreadyExistsException;
 
 public class Reservations {
 
@@ -35,7 +34,7 @@ public class Reservations {
         boolean isDuplicated = reservations.stream()
                 .anyMatch(reservation -> reservation.equals(newReservation));
         if (isDuplicated) {
-            throw new CustomInvalidRequestException(ErrorCode.DUPLICATED_RESERVATION);
+            throw new ReservationAlreadyExistsException();
         }
     }
 

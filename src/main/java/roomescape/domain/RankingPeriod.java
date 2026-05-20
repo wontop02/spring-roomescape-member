@@ -4,9 +4,10 @@ import static roomescape.service.ThemeService.MAX_RANKING_PERIOD;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import roomescape.exception.CustomInvalidDomainException;
-import roomescape.exception.CustomInvalidRequestException;
-import roomescape.exception.ErrorCode;
+import roomescape.exception.custom.InvalidDomainValueException;
+import roomescape.exception.custom.RankingPeriodEndDateBeforeStartDateException;
+import roomescape.exception.custom.RankingPeriodExceedsLimitException;
+import roomescape.exception.custom.RankingPeriodPastDateOnlyException;
 
 public class RankingPeriod {
 
@@ -21,26 +22,23 @@ public class RankingPeriod {
 
     private void validate(LocalDate startDate, LocalDate endDate, LocalDate now) {
         if (startDate == null) {
-            throw new CustomInvalidDomainException(ErrorCode.NOT_ALLOW_RANKING_START_DATE_NULL);
+            throw new InvalidDomainValueException("랭킹 조회 시작 날짜는 비어 있을 수 없습니다.");
         }
         if (endDate == null) {
-            throw new CustomInvalidDomainException(ErrorCode.NOT_ALLOW_RANKING_END_DATE_NULL);
-        }
-        if (now == null) {
-            throw new CustomInvalidDomainException(ErrorCode.NOT_ALLOW_NOW_DATE_NULL);
+            throw new InvalidDomainValueException("랭킹 조회 종료 날짜는 비어 있을 수 없습니다.");
         }
         validatePeriod(now);
     }
 
     private void validatePeriod(LocalDate now) {
         if (startDate.isAfter(endDate)) {
-            throw new CustomInvalidRequestException(ErrorCode.INVALID_RANKING_PERIOD);
+            throw new RankingPeriodEndDateBeforeStartDateException();
         }
         if (!endDate.isBefore(now)) {
-            throw new CustomInvalidRequestException(ErrorCode.FUTURE_RANKING_PERIOD);
+            throw new RankingPeriodPastDateOnlyException();
         }
         if (ChronoUnit.DAYS.between(startDate, endDate) > MAX_RANKING_PERIOD) {
-            throw new CustomInvalidRequestException(ErrorCode.LONG_RANKING_PERIOD);
+            throw new RankingPeriodExceedsLimitException();
         }
     }
 

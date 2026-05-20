@@ -3,8 +3,7 @@ package roomescape.domain;
 import java.util.ArrayList;
 import java.util.List;
 import roomescape.entity.ReservationTimeEntity;
-import roomescape.exception.CustomInvalidRequestException;
-import roomescape.exception.ErrorCode;
+import roomescape.exception.custom.ReservationTimeAlreadyExistsException;
 
 public class ReservationTimes {
 
@@ -29,7 +28,7 @@ public class ReservationTimes {
         boolean isDuplicated = reservationTimes.stream()
                 .anyMatch(reservationTime -> reservationTime.equals(newReservationTime));
         if (isDuplicated) {
-            throw new CustomInvalidRequestException(ErrorCode.DUPLICATED_RESERVATION_TIME);
+            throw new ReservationTimeAlreadyExistsException();
         }
     }
 }

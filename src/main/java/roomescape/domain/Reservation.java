@@ -4,9 +4,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Objects;
-import roomescape.exception.CustomInvalidDomainException;
-import roomescape.exception.CustomInvalidRequestException;
-import roomescape.exception.ErrorCode;
+import roomescape.exception.custom.CannotCreatePastReservationException;
+import roomescape.exception.custom.CannotModifyPastReservationException;
+import roomescape.exception.custom.InvalidDomainValueException;
 
 public class Reservation {
 
@@ -25,28 +25,28 @@ public class Reservation {
 
     private void validate(String name, LocalDate date, ReservationTime time, Theme theme) {
         if (name == null || name.isBlank()) {
-            throw new CustomInvalidDomainException(ErrorCode.NOT_ALLOW_NAME_NULL);
+            throw new InvalidDomainValueException("예약자 이름은 비어 있을 수 없습니다.");
         }
         if (date == null) {
-            throw new CustomInvalidDomainException(ErrorCode.NOT_ALLOW_DATE_NULL);
+            throw new InvalidDomainValueException("예약 날짜는 비어 있을 수 없습니다.");
         }
         if (time == null) {
-            throw new CustomInvalidDomainException(ErrorCode.NOT_ALLOW_TIME_NULL);
+            throw new InvalidDomainValueException("예약 시간은 비어 있을 수 없습니다.");
         }
         if (theme == null) {
-            throw new CustomInvalidDomainException(ErrorCode.NOT_ALLOW_THEME_NULL);
+            throw new InvalidDomainValueException("테마는 비어 있을 수 없습니다.");
         }
     }
 
     public void validateNotPast(LocalDateTime now) {
         if (isPast(now)) {
-            throw new CustomInvalidRequestException(ErrorCode.NOT_ALLOW_PAST_TIME_RESERVATION_CREATE);
+            throw new CannotCreatePastReservationException();
         }
     }
 
     public void validateAvailableModify(LocalDateTime now) {
         if (isPast(now)) {
-            throw new CustomInvalidRequestException(ErrorCode.NOT_ALLOW_PAST_TIME_RESERVATION_MODIFY);
+            throw new CannotModifyPastReservationException();
         }
     }
 

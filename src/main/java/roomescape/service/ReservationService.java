@@ -10,8 +10,9 @@ import roomescape.domain.Reservations;
 import roomescape.entity.ReservationEntity;
 import roomescape.entity.ReservationTimeEntity;
 import roomescape.entity.ThemeEntity;
-import roomescape.exception.CustomInvalidRequestException;
-import roomescape.exception.ErrorCode;
+import roomescape.exception.custom.ReservationNotExistsException;
+import roomescape.exception.custom.ReservationTimeNotExistsException;
+import roomescape.exception.custom.ThemeNotExistsException;
 import roomescape.repository.ReservationRepository;
 import roomescape.repository.ReservationTimeRepository;
 import roomescape.repository.ThemeRepository;
@@ -57,12 +58,12 @@ public class ReservationService {
 
     private ReservationTimeEntity readReservationTime(Long timeId) {
         return reservationTimeRepository.read(timeId)
-                .orElseThrow(() -> new CustomInvalidRequestException(ErrorCode.NOT_FOUND_RESERVATION_TIME));
+                .orElseThrow(ReservationTimeNotExistsException::new);
     }
 
     private ThemeEntity readTheme(Long themeId) {
         return themeRepository.read(themeId)
-                .orElseThrow(() -> new CustomInvalidRequestException(ErrorCode.NOT_FOUND_THEME));
+                .orElseThrow(ThemeNotExistsException::new);
     }
 
     public List<ServiceReservationResponse> readByName(String name) {
@@ -99,7 +100,7 @@ public class ReservationService {
 
     private ReservationEntity readReservation(Long reservationId) {
         return reservationRepository.readById(reservationId)
-                .orElseThrow(() -> new CustomInvalidRequestException(ErrorCode.NOT_FOUND_RESERVATION));
+                .orElseThrow(ReservationNotExistsException::new);
     }
 
     @Transactional
