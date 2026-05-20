@@ -1,5 +1,6 @@
 package roomescape.domain;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,5 +59,14 @@ public class Reservations {
 
     private void validateDelete(Reservation deleteReservation, LocalDateTime localDateTime) {
         deleteReservation.validateNotPast(localDateTime);
+    }
+
+    public List<ReservationTime> unavailableTimes(LocalDate date, LocalDateTime now, Theme theme) {
+        return reservations.stream()
+                .filter(reservation -> reservation.getDate().equals(date)
+                        && reservation.getTheme().equals(theme)
+                        && reservation.isPast(now))
+                .map(Reservation::getTime)
+                .toList();
     }
 }

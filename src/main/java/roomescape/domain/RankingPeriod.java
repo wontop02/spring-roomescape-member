@@ -8,6 +8,7 @@ import roomescape.exception.CustomInvalidRequestException;
 import roomescape.exception.ErrorCode;
 
 public class RankingPeriod {
+
     private final LocalDate startDate;
     private final LocalDate endDate;
 

@@ -50,7 +50,7 @@ public class Reservation {
         }
     }
 
-    private boolean isPast(LocalDateTime now) {
+    public boolean isPast(LocalDateTime now) {
         LocalDate nowDate = now.toLocalDate();
         LocalTime nowTime = now.toLocalTime();
 

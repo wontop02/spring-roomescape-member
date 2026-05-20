@@ -15,7 +15,7 @@ public class ReservationTimes {
                 .map(ReservationTimeEntity::toDomain)
                 .toList());
     }
-    
+
     public void create(ReservationTime newReservationTime) {
         validateCreate(newReservationTime);
         reservationTimes.add(newReservationTime);

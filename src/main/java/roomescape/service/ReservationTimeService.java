@@ -1,12 +1,17 @@
 package roomescape.service;
 
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import roomescape.domain.ReservationTime;
 import roomescape.domain.ReservationTimes;
+import roomescape.domain.Reservations;
+import roomescape.domain.Theme;
 import roomescape.entity.ReservationTimeEntity;
+import roomescape.entity.ThemeEntity;
 import roomescape.exception.CustomInvalidRequestException;
 import roomescape.exception.ErrorCode;
 import roomescape.repository.ReservationRepository;
@@ -23,12 +28,14 @@ public class ReservationTimeService {
     private final ReservationTimeRepository reservationTimeRepository;
     private final ThemeRepository themeRepository;
     private final ReservationRepository reservationRepository;
+    private final Clock clock;
 
     public ReservationTimeService(ReservationTimeRepository reservationTimeRepository, ThemeRepository themeRepository,
-                                  ReservationRepository reservationRepository) {
+                                  ReservationRepository reservationRepository, Clock clock) {
         this.reservationTimeRepository = reservationTimeRepository;
         this.themeRepository = themeRepository;
         this.reservationRepository = reservationRepository;
+        this.clock = clock;
     }
 
     public ReservationTimes makeReservationTimes() {
@@ -53,24 +60,23 @@ public class ReservationTimeService {
 
     public List<ServiceReservationTimeAvailabilityResponse> readAvailabilityByDateAndTheme(
             LocalDate date, Long themeId) {
-        validateExistTheme(themeId);
+        Theme theme = readTheme(themeId).toDomain();
 
-        List<ReservationTimeEntity> allReservationTimeEntities = reservationTimeRepository.readAll();
-        List<Long> reservedTimeIdByDateAndTheme = reservationTimeRepository.reservedTimeIdByDateAndTheme(date, themeId);
+        Reservations reservations = new Reservations(reservationRepository.readAll());
+        List<ReservationTime> unavailableTimes = reservations.unavailableTimes(date, LocalDateTime.now(clock), theme);
 
-        return allReservationTimeEntities.stream()
-                .map(reservationTime -> {
-                    if (reservedTimeIdByDateAndTheme.contains(reservationTime.getId())) {
-                        return ServiceReservationTimeAvailabilityResponse.from(reservationTime, false);
+        return reservationTimeRepository.readAll().stream()
+                .map(reservationTimeEntity -> {
+                    if (unavailableTimes.contains(reservationTimeEntity.toDomain())) {
+                        return ServiceReservationTimeAvailabilityResponse.from(reservationTimeEntity, false);
                     }
-                    return ServiceReservationTimeAvailabilityResponse.from(reservationTime, true);
+                    return ServiceReservationTimeAvailabilityResponse.from(reservationTimeEntity, true);
                 }).toList();
     }
 
-    private void validateExistTheme(Long themeId) {
-        if (!themeRepository.existById(themeId)) {
-            throw new CustomInvalidRequestException(ErrorCode.NOT_FOUND_THEME);
-        }
+    private ThemeEntity readTheme(Long themeId) {
+        return themeRepository.read(themeId)
+                .orElseThrow(() -> new CustomInvalidRequestException(ErrorCode.NOT_FOUND_THEME));
     }
 
     @Transactional
