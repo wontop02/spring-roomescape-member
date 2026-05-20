@@ -54,13 +54,21 @@ public class Reservation {
         LocalDate nowDate = now.toLocalDate();
         LocalTime nowTime = now.toLocalTime();
 
-        if (date.isBefore(nowDate)) {
+        if (isPastDate(nowDate)) {
             return true;
         }
-        if (date.isAfter(nowDate)) {
+        if (isFutureDate(nowDate)) {
             return false;
         }
         return time.isPast(nowTime);
+    }
+
+    public boolean isPastDate(LocalDate otherDate) {
+        return date.isBefore(otherDate);
+    }
+
+    public boolean isFutureDate(LocalDate otherDate) {
+        return date.isAfter(otherDate);
     }
 
     public String getName() {

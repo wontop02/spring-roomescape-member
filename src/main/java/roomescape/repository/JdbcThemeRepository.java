@@ -1,7 +1,6 @@
 package roomescape.repository;
 
 import java.sql.PreparedStatement;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.context.annotation.Primary;
@@ -79,41 +78,5 @@ public class JdbcThemeRepository implements ThemeRepository {
         String sql = "DELETE FROM theme WHERE id = (?)";
 
         jdbcTemplate.update(sql, id);
-    }
-
-    @Override
-    public List<ThemeEntity> readRanking(LocalDate startDate, LocalDate endDate, int limit) {
-        String sql = "SELECT th.id AS theme_id, th.name, th.description, "
-                + "th.thumbnail_url, COUNT(r.id) AS reservation_count "
-                + "FROM theme th "
-                + "LEFT JOIN reservation r "
-                + "ON r.theme_id = th.id "
-                + "AND r.date BETWEEN (?) AND (?) "
-                + "GROUP BY th.id, th.name, th.description, th.thumbnail_url "
-                + "ORDER BY reservation_count DESC, th.id ASC "
-                + "LIMIT (?)";
-
-        return jdbcTemplate.query(
-                sql,
-                (resultSet, rowNumber) -> {
-                    Long id = resultSet.getLong("theme_id");
-                    String name = resultSet.getString("name");
-                    String description = resultSet.getString("description");
-                    String thumbnailUrl = resultSet.getString("thumbnail_url");
-                    return new ThemeEntity(id, name, description, thumbnailUrl);
-                },
-                startDate,
-                endDate,
-                limit
-        );
-    }
-
-    @Override
-    public boolean existById(Long id) {
-        String sql = "SELECT EXISTS ("
-                + "SELECT 1 FROM `theme` WHERE `id` = (?) "
-                + ") AS exist";
-
-        return Boolean.TRUE.equals(jdbcTemplate.queryForObject(sql, Boolean.class, id));
     }
 }

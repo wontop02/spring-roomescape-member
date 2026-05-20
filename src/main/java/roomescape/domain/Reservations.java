@@ -4,6 +4,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
 import roomescape.entity.ReservationEntity;
 import roomescape.exception.CustomInvalidRequestException;
 import roomescape.exception.ErrorCode;
@@ -68,5 +71,27 @@ public class Reservations {
                         && reservation.isPast(now))
                 .map(Reservation::getTime)
                 .toList();
+    }
+
+    public List<Theme> themeRankingByReservationCounts(RankingPeriod rankingPeriod, int limit) {
+        Map<Theme, Long> reservationCountsByTheme = reservationCountsByTheme(rankingPeriod);
+
+        List<Theme> ranking = reservationCountsByTheme.entrySet().stream()
+                .sorted(Entry.comparingByValue())
+                .map(Entry::getKey)
+                .toList()
+                .reversed();
+
+        if (ranking.size() < limit) {
+            return ranking;
+        }
+        return ranking.subList(0, limit);
+    }
+
+    private Map<Theme, Long> reservationCountsByTheme(RankingPeriod rankingPeriod) {
+        return reservations.stream()
+                .filter(reservation -> !reservation.isPastDate(rankingPeriod.getStartDate())
+                        && !reservation.isFutureDate(rankingPeriod.getEndDate()))
+                .collect(Collectors.groupingBy(Reservation::getTheme, Collectors.counting()));
     }
 }

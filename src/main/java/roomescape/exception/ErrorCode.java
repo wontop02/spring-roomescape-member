@@ -33,6 +33,9 @@ public enum ErrorCode {
     NOT_ALLOW_THEME_NULL("[ERROR] 테마는 비어 있을 수 없습니다."),
     NOT_ALLOW_DESCRIPTION_NULL("[ERROR] 설명은 비어 있을 수 없습니다."),
     NOT_ALLOW_THUMBNAIL_NULL("[ERROR] 썸네일은 비어 있을 수 없습니다."),
+    NOT_ALLOW_RANKING_START_DATE_NULL("[ERROR] 랭킹 조회 시작 날짜는 비어 있을 수 없습니다."),
+    NOT_ALLOW_RANKING_END_DATE_NULL("[ERROR] 랭킹 조회 종료 날짜는 비어 있을 수 없습니다."),
+    NOT_ALLOW_NOW_DATE_NULL("[ERROR] 현재 날짜는 비어 있을 수 없습니다."),
     ;
 
     private final String message;

@@ -2,7 +2,6 @@ package roomescape.repository;
 
 import java.sql.PreparedStatement;
 import java.sql.Time;
-import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
@@ -72,20 +71,5 @@ public class JdbcReservationTimeRepository implements ReservationTimeRepository 
     public void delete(Long id) {
         String sql = "DELETE FROM `reservation_time` WHERE `id` = (?)";
         jdbcTemplate.update(sql, id);
-    }
-
-    @Override
-    public List<Long> reservedTimeIdByDateAndTheme(LocalDate date, Long themeId) {
-        String sql = "SELECT t.id as time_id "
-                + "FROM `reservation_time` t "
-                + "INNER JOIN `reservation` r ON r.time_id = t.id "
-                + "WHERE r.date = (?) AND r.theme_id = (?) ";
-
-        return jdbcTemplate.query(sql,
-                (resultSet, rowNum) ->
-                        resultSet.getLong("time_id"),
-                date,
-                themeId
-        );
     }
 }
