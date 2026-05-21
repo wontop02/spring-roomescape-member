@@ -67,7 +67,7 @@ public class Reservations {
         return reservations.stream()
                 .filter(reservation -> reservation.getDate().equals(date)
                         && reservation.getTheme().equals(theme)
-                        && reservation.isPast(now))
+                        || reservation.isPast(now))
                 .map(Reservation::getTime)
                 .toList();
     }
