@@ -27,10 +27,10 @@ public class RankingPeriod {
         if (endDate == null) {
             throw new InvalidDomainValueException("랭킹 조회 종료 날짜는 비어 있을 수 없습니다.");
         }
-        validatePeriod(now);
+        validatePeriod(startDate, endDate, now);
     }
 
-    private void validatePeriod(LocalDate now) {
+    private void validatePeriod(LocalDate startDate, LocalDate endDate, LocalDate now) {
         if (startDate.isAfter(endDate)) {
             throw new RankingPeriodEndDateBeforeStartDateException();
         }
