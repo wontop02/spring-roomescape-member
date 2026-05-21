@@ -67,16 +67,6 @@ public class FakeReservationRepository implements ReservationRepository {
     }
 
     @Override
-    public boolean existByDateAndTimeIdAndThemeId(LocalDate date, Long timeId, Long themeId) {
-        List<ReservationEntity> reservations = fakeDatabase.readAll(RESERVATION_TABLE, ReservationEntity.class);
-
-        return reservations.stream()
-                .anyMatch(reservation -> reservation.getDate().equals(date)
-                        && reservation.getTime().getId().equals(timeId)
-                        && reservation.getTheme().getId().equals(themeId));
-    }
-
-    @Override
     public boolean existByTimeId(Long timeId) {
         List<ReservationEntity> reservations = fakeDatabase.readAll(RESERVATION_TABLE, ReservationEntity.class);
 

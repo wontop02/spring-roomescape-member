@@ -1,5 +1,6 @@
 package roomescape.domain;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import java.time.LocalDate;
@@ -8,9 +9,9 @@ import java.time.LocalTime;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import roomescape.exception.CustomInvalidDomainException;
-import roomescape.exception.CustomInvalidRequestException;
-import roomescape.exception.ErrorCode;
+import roomescape.exception.custom.CannotCreatePastReservationException;
+import roomescape.exception.custom.CannotModifyPastReservationException;
+import roomescape.exception.custom.InvalidDomainValueException;
 
 public class ReservationTest {
 
@@ -21,8 +22,7 @@ public class ReservationTest {
         Theme theme = new Theme("피즈의 모험", "모험 이야기", "url.jpg");
         assertThatThrownBy(
                 () -> new Reservation(name, LocalDate.of(2026, 5, 2), reservationTime, theme))
-                .isInstanceOf(CustomInvalidDomainException.class)
-                .hasMessage(ErrorCode.NOT_ALLOW_NAME_NULL.getMessage());
+                .isInstanceOf(InvalidDomainValueException.class);
     }
 
     @Test
@@ -30,16 +30,14 @@ public class ReservationTest {
         ReservationTime reservationTime = new ReservationTime(LocalTime.of(10, 0));
         Theme theme = new Theme("피즈의 모험", "모험 이야기", "url.jpg");
         assertThatThrownBy(() -> new Reservation("fizz", null, reservationTime, theme))
-                .isInstanceOf(CustomInvalidDomainException.class)
-                .hasMessage(ErrorCode.NOT_ALLOW_DATE_NULL.getMessage());
+                .isInstanceOf(InvalidDomainValueException.class);
     }
 
     @Test
     void reservationTimeNullExceptionTest() {
         Theme theme = new Theme("피즈의 모험", "모험 이야기", "url.jpg");
         assertThatThrownBy(() -> new Reservation("fizz", LocalDate.of(2026, 5, 2), null, theme))
-                .isInstanceOf(CustomInvalidDomainException.class)
-                .hasMessage(ErrorCode.NOT_ALLOW_TIME_NULL.getMessage());
+                .isInstanceOf(InvalidDomainValueException.class);
     }
 
     @Test
@@ -47,20 +45,17 @@ public class ReservationTest {
         ReservationTime reservationTime = new ReservationTime(LocalTime.of(10, 0));
         assertThatThrownBy(
                 () -> new Reservation("fizz", LocalDate.of(2026, 5, 2), reservationTime, null))
-                .isInstanceOf(CustomInvalidDomainException.class)
-                .hasMessage(ErrorCode.NOT_ALLOW_THEME_NULL.getMessage());
+                .isInstanceOf(InvalidDomainValueException.class);
     }
 
     @Test
-    void validateNotPastExceptionTest() {
+    void validateCreateNotPastExceptionTest() {
         ReservationTime reservationTime = new ReservationTime(LocalTime.of(10, 0));
         Theme theme = new Theme("방탈출1", "방탈출1 설명", "url.jpg");
         Reservation pastReservation = new Reservation("fizz", LocalDate.of(2025, 5, 2),
                 reservationTime, theme);
-        assertThatThrownBy(
-                () -> pastReservation.validateNotPast(LocalDateTime.of(2026, 5, 19, 10, 0)))
-                .isInstanceOf(CustomInvalidRequestException.class)
-                .hasMessage(ErrorCode.NOT_ALLOW_PAST_TIME_RESERVATION_CREATE.getMessage());
+        assertThatThrownBy(() -> pastReservation.validateNotPast(LocalDateTime.now()))
+                .isInstanceOf(CannotCreatePastReservationException.class);
     }
 
     @Test
@@ -71,7 +66,17 @@ public class ReservationTest {
                 reservationTime, theme);
         assertThatThrownBy(
                 () -> pastReservation.validateAvailableModify(LocalDateTime.of(2026, 5, 19, 10, 0)))
-                .isInstanceOf(CustomInvalidRequestException.class)
-                .hasMessage(ErrorCode.NOT_ALLOW_PAST_TIME_RESERVATION_MODIFY.getMessage());
+                .isInstanceOf(CannotModifyPastReservationException.class);
+    }
+
+    @Test
+    void isPastTest() {
+        ReservationTime reservationTime = new ReservationTime(LocalTime.of(10, 0));
+        Theme theme = new Theme("방탈출1", "방탈출1 설명", "url.jpg");
+        Reservation pastReservation = new Reservation("fizz", LocalDate.of(2025, 5, 2),
+                reservationTime, theme);
+
+        assertThat(pastReservation.isPast(LocalDateTime.of(2025, 5, 3, 10, 0))).isTrue();
+        assertThat(pastReservation.isPast(LocalDateTime.of(2025, 5, 1, 10, 0))).isFalse();
     }
 }

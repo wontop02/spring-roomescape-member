@@ -150,18 +150,6 @@ public class ReservationRepositoryTest extends RepositoryTest {
     }
 
     @Test
-    void existByDateAndTimeIdAndThemeIdTest() {
-        boolean exist = reservationRepository.existByDateAndTimeIdAndThemeId(LocalDate.of(2026, 5, 2), 1L, 1L);
-        assertThat(exist).isFalse();
-
-        String sql = "INSERT INTO `reservation` (`name`, `date`, `time_id`, `theme_id`) VALUES (?, ?, ?, ?)";
-        jdbcTemplate.update(sql, "fizz", "2026-05-02", 1L, 1L);
-
-        exist = reservationRepository.existByDateAndTimeIdAndThemeId(LocalDate.of(2026, 5, 2), 1L, 1L);
-        assertThat(exist).isTrue();
-    }
-
-    @Test
     void existByTimeIdTest() {
         boolean exist = reservationRepository.existByTimeId(1L);
         assertThat(exist).isFalse();

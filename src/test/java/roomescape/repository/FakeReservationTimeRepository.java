@@ -1,12 +1,8 @@
 package roomescape.repository;
 
-import static roomescape.repository.FakeReservationRepository.RESERVATION_TABLE;
-
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import roomescape.domain.ReservationTime;
-import roomescape.entity.ReservationEntity;
 import roomescape.entity.ReservationTimeEntity;
 
 public class FakeReservationTimeRepository implements ReservationTimeRepository {
@@ -42,19 +38,5 @@ public class FakeReservationTimeRepository implements ReservationTimeRepository 
     @Override
     public void delete(Long id) {
         fakeDatabase.delete(RESERVATION_TIME_TABLE, id);
-    }
-
-    @Override
-    public List<Long> reservedTimeIdByDateAndTheme(LocalDate date, Long themeId) {
-        List<Long> reservedTimeId = fakeDatabase.readAll(RESERVATION_TABLE, ReservationEntity.class).stream()
-                .filter(reservation -> reservation.getDate().equals(date) && reservation.getTheme().getId()
-                        .equals(themeId))
-                .map(reservation -> reservation.getTime().getId())
-                .toList();
-
-        return fakeDatabase.readAll(RESERVATION_TIME_TABLE, ReservationTimeEntity.class).stream()
-                .map(ReservationTimeEntity::getId)
-                .filter(reservedTimeId::contains)
-                .toList();
     }
 }

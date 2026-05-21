@@ -1,7 +1,6 @@
 package roomescape.acceptance.step;
 
 import static org.hamcrest.Matchers.is;
-import static roomescape.exception.ErrorCode.DUPLICATED_RESERVATION;
 
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -60,21 +59,5 @@ public class ReservationSteps {
                 .when().delete("/reservations/" + id)
                 .then().log().all()
                 .statusCode(204);
-    }
-
-    public static void createDuplicatedReservation(String name, String date, Long timeId, Long themeId) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("name", name);
-        params.put("date", date);
-        params.put("timeId", timeId);
-        params.put("themeId", themeId);
-
-        RestAssured.given().log().all()
-                .contentType(ContentType.JSON)
-                .body(params)
-                .when().post("/reservations")
-                .then().log().all()
-                .statusCode(400)
-                .body("message", is(DUPLICATED_RESERVATION.getMessage()));
     }
 }

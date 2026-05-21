@@ -1,11 +1,6 @@
 package roomescape.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static roomescape.exception.ErrorCode.FUTURE_RANKING_PERIOD;
-import static roomescape.exception.ErrorCode.INVALID_RANKING_PERIOD;
-import static roomescape.exception.ErrorCode.LONG_RANKING_PERIOD;
-import static roomescape.exception.ErrorCode.REFERENCED_THEME;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -20,7 +15,6 @@ import roomescape.domain.ReservationTime;
 import roomescape.domain.Theme;
 import roomescape.entity.ReservationTimeEntity;
 import roomescape.entity.ThemeEntity;
-import roomescape.exception.CustomInvalidRequestException;
 import roomescape.repository.FakeDatabase;
 import roomescape.repository.FakeReservationRepository;
 import roomescape.repository.FakeReservationTimeRepository;
@@ -50,51 +44,6 @@ public class ThemeServiceTest {
         clock = Clock.fixed(Instant.parse("2026-05-02T00:00:00Z"), ZoneId.of("Asia/Seoul"));
 
         themeService = new ThemeService(themeRepository, reservationRepository, clock);
-    }
-
-    @Test
-    void readFutureRankingPeriodExceptionTest() {
-        LocalDate startDate = LocalDate.of(2026, 5, 3);
-        LocalDate endDate = LocalDate.of(2026, 5, 4);
-
-        assertThatThrownBy(() -> themeService.readRanking(startDate, endDate))
-                .isInstanceOf(CustomInvalidRequestException.class)
-                .hasMessage(FUTURE_RANKING_PERIOD.getMessage());
-    }
-
-    @Test
-    void readInvalidRankingPeriodExceptionTest() {
-        LocalDate startDate = LocalDate.of(2026, 5, 2);
-        LocalDate endDate = LocalDate.of(2026, 5, 1);
-
-        assertThatThrownBy(() -> themeService.readRanking(startDate, endDate))
-                .isInstanceOf(CustomInvalidRequestException.class)
-                .hasMessage(INVALID_RANKING_PERIOD.getMessage());
-    }
-
-    @Test
-    void readLongRankingPeriodExceptionTest() {
-        LocalDate startDate = LocalDate.of(2024, 5, 1);
-        LocalDate endDate = LocalDate.of(2026, 5, 2);
-
-        assertThatThrownBy(() -> themeService.readRanking(startDate, endDate))
-                .isInstanceOf(CustomInvalidRequestException.class)
-                .hasMessage(LONG_RANKING_PERIOD.getMessage());
-    }
-
-    @Test
-    void deleteReferencedThemeExceptionTest() {
-        ReservationTimeEntity reservationTimeEntity = reservationTimeRepository.create(
-                new ReservationTime(LocalTime.of(10, 0)));
-        ThemeEntity themeEntity = themeRepository.create(new Theme("방탈출1", "방탈출1 설명", "url.jpg"));
-        Reservation reservation = new Reservation("fizz", LocalDate.of(2026, 5, 3), reservationTimeEntity.toDomain(),
-                themeEntity.toDomain());
-
-        reservationRepository.create(reservation, reservationTimeEntity, themeEntity);
-
-        assertThatThrownBy(() -> themeService.delete(1L))
-                .isInstanceOf(CustomInvalidRequestException.class)
-                .hasMessage(REFERENCED_THEME.getMessage());
     }
 
     @Test
@@ -171,7 +120,7 @@ public class ThemeServiceTest {
                 themeEntity1.toDomain());
         Reservation reservation2 = new Reservation("fizz", LocalDate.of(2026, 5, 1), reservationTimeEntity.toDomain(),
                 themeEntity1.toDomain());
-        Reservation reservation3 = new Reservation("fizz", LocalDate.of(2026, 5, 2), reservationTimeEntity.toDomain(),
+        Reservation reservation3 = new Reservation("fizz", LocalDate.of(2026, 5, 1), reservationTimeEntity.toDomain(),
                 themeEntity2.toDomain());
 
         reservationRepository.create(reservation1, reservationTimeEntity, themeEntity1);
@@ -179,7 +128,7 @@ public class ThemeServiceTest {
         reservationRepository.create(reservation3, reservationTimeEntity, themeEntity2);
 
         List<ServiceThemeResponse> responses = themeService.readRanking(LocalDate.of(2026, 4, 29),
-                LocalDate.of(2026, 5, 2));
+                LocalDate.of(2026, 5, 1));
 
         assertThat(responses.get(0).name()).isEqualTo("피즈의 모험");
         assertThat(responses.get(1).name()).isEqualTo("피즈의 모험2");

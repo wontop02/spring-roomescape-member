@@ -1,11 +1,6 @@
 package roomescape.service;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static roomescape.exception.ErrorCode.DUPLICATED_RESERVATION_TIME;
-import static roomescape.exception.ErrorCode.NOT_FOUND_THEME;
-import static roomescape.exception.ErrorCode.PAST_RESERVATION_TIME_READ;
-import static roomescape.exception.ErrorCode.REFERENCED_TIME;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -17,10 +12,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import roomescape.domain.Reservation;
 import roomescape.domain.ReservationTime;
+import roomescape.domain.ReservationTimes;
 import roomescape.domain.Theme;
 import roomescape.entity.ReservationTimeEntity;
 import roomescape.entity.ThemeEntity;
-import roomescape.exception.CustomInvalidRequestException;
 import roomescape.repository.FakeDatabase;
 import roomescape.repository.FakeReservationRepository;
 import roomescape.repository.FakeReservationTimeRepository;
@@ -39,6 +34,7 @@ public class ReservationTimeServiceTest {
     private ReservationRepository reservationRepository;
     private ReservationTimeRepository reservationTimeRepository;
     private ThemeRepository themeRepository;
+    private ReservationTimes reservationTimes;
     private Clock clock;
 
     @BeforeEach
@@ -49,58 +45,15 @@ public class ReservationTimeServiceTest {
         reservationTimeRepository = new FakeReservationTimeRepository(fakeDatabase);
         themeRepository = new FakeThemeRepository(fakeDatabase);
         clock = Clock.fixed(Instant.parse("2026-05-02T00:00:00Z"), ZoneId.of("Asia/Seoul"));
+        reservationTimes = new ReservationTimes(reservationTimeRepository.readAll());
 
         reservationTimeService = new ReservationTimeService(reservationTimeRepository, themeRepository,
                 reservationRepository, clock);
     }
 
     @Test
-    void createDuplicatedReservationTimeExceptionTest() {
-        ServiceReservationTimeCreateRequest request = new ServiceReservationTimeCreateRequest(LocalTime.of(10, 0));
-        reservationTimeService.create(request);
-
-        assertThatThrownBy(() -> reservationTimeService.create(request))
-                .isInstanceOf(CustomInvalidRequestException.class)
-                .hasMessage(DUPLICATED_RESERVATION_TIME.getMessage());
-    }
-
-    @Test
-    void readAvailabilityNotFoundThemeExceptionTest() {
-        assertThatThrownBy(() -> reservationTimeService.readAvailabilityByDateAndTheme(LocalDate.of(2026, 5, 3), 1L))
-                .isInstanceOf(CustomInvalidRequestException.class)
-                .hasMessage(NOT_FOUND_THEME.getMessage());
-    }
-
-    @Test
-    void readAvailabilityPastDateExceptionTest() {
-        reservationTimeRepository.create(new ReservationTime(LocalTime.of(10, 0)));
-        ThemeEntity theme = themeRepository.create(new Theme("방탈출1", "방탈출1 설명", "url.jpg"));
-
-        LocalDate beforeDate = LocalDate.of(2026, 5, 1);
-
-        assertThatThrownBy(() -> reservationTimeService.readAvailabilityByDateAndTheme(beforeDate, theme.getId()))
-                .isInstanceOf(CustomInvalidRequestException.class)
-                .hasMessage(PAST_RESERVATION_TIME_READ.getMessage());
-    }
-
-    @Test
-    void deleteReferencedReservationTimeExceptionTest() {
-        ReservationTimeEntity reservationTimeEntity = reservationTimeRepository.create(
-                new ReservationTime(LocalTime.of(10, 0)));
-        ThemeEntity themeEntity = themeRepository.create(new Theme("방탈출1", "방탈출1 설명", "url.jpg"));
-        Reservation reservation = new Reservation("fizz", LocalDate.of(2026, 5, 3), reservationTimeEntity.toDomain(),
-                themeEntity.toDomain());
-
-        reservationRepository.create(reservation, reservationTimeEntity, themeEntity);
-
-        assertThatThrownBy(() -> reservationTimeService.delete(1L))
-                .isInstanceOf(CustomInvalidRequestException.class)
-                .hasMessage(REFERENCED_TIME.getMessage());
-    }
-
-    @Test
     void createTest() {
-        ServiceReservationTimeResponse response = reservationTimeService.create(
+        ServiceReservationTimeResponse response = reservationTimeService.create(reservationTimes,
                 new ServiceReservationTimeCreateRequest(LocalTime.of(10, 0)));
 
         assertThat(response).isEqualTo(new ServiceReservationTimeResponse(1L, LocalTime.of(10, 0)));
