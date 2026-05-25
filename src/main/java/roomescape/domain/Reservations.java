@@ -32,7 +32,7 @@ public class Reservations {
 
     private void validateUnique(Reservation newReservation) {
         boolean isDuplicated = reservations.stream()
-                .anyMatch(reservation -> reservation.equals(newReservation));
+                .anyMatch(reservation -> reservation.isSameSlot(newReservation));
         if (isDuplicated) {
             throw new ReservationAlreadyExistsException();
         }

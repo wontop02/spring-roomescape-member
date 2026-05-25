@@ -44,6 +44,11 @@ public class Reservation {
         }
     }
 
+    public boolean isSameSlot(Reservation otherReservation) {
+        return (date.isEqual(otherReservation.date)) && (time.equals(otherReservation.time)) && (theme.equals(
+                otherReservation.theme));
+    }
+
     public void validateAvailableModify(LocalDateTime now) {
         if (isPast(now)) {
             throw new CannotModifyPastReservationException();
@@ -93,8 +98,12 @@ public class Reservation {
             return false;
         }
         Reservation that = (Reservation) object;
-        return Objects.equals(date, that.date) && Objects.equals(time, that.time)
-                && Objects.equals(theme, that.theme);
+        return Objects.equals(name, that.name) && Objects.equals(date, that.date)
+                && Objects.equals(time, that.time) && Objects.equals(theme, that.theme);
     }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, date, time, theme);
+    }
 }
