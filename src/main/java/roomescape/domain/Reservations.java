@@ -48,8 +48,8 @@ public class Reservations {
                                 LocalDateTime localDateTime) {
         newReservation.validateNotPast(localDateTime);
         beforeReservation.validateAvailableModify(localDateTime);
-        // 이전 예약과 새 예약이 같을 때는, 중복 예외 발생하지 않도록
-        if (!beforeReservation.equals(newReservation)) {
+        // 이전 예약과 새 예약이 같은 슬롯일 때는, 중복 예외 발생하지 않도록
+        if (!beforeReservation.isSameSlot(newReservation)) {
             validateUnique(newReservation);
         }
     }
