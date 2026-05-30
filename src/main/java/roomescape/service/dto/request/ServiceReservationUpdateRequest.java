@@ -9,6 +9,7 @@ public record ServiceReservationUpdateRequest(
         Long timeId
 ) {
     public Reservation toReservation(Reservation beforeReservation, ReservationTime newReservationTime) {
-        return new Reservation(beforeReservation.getName(), date, newReservationTime, beforeReservation.getTheme());
+        return new Reservation(beforeReservation.getId(), beforeReservation.getName(), date, newReservationTime,
+                beforeReservation.getTheme());
     }
 }

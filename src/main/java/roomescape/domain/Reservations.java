@@ -7,9 +7,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import roomescape.exception.custom.ReservationAlreadyExistsException;
+import java.util.stream.Stream;
 
 public class Reservations {
+
+    private static final int RANKING_LIMIT = 10;
 
     private final List<Reservation> reservations;
 
@@ -17,47 +19,8 @@ public class Reservations {
         reservations = new ArrayList<>(allReservations);
     }
 
-    public void create(Reservation newReservation, LocalDateTime localDateTime) {
-        validateCreate(newReservation, localDateTime);
-        reservations.add(newReservation);
-    }
-
-    private void validateCreate(Reservation newReservation, LocalDateTime localDateTime) {
-        newReservation.validateNotPast(localDateTime);
-        validateUnique(newReservation);
-    }
-
-    private void validateUnique(Reservation newReservation) {
-        boolean isDuplicated = reservations.stream()
-                .anyMatch(reservation -> reservation.isSameSlot(newReservation));
-        if (isDuplicated) {
-            throw new ReservationAlreadyExistsException();
-        }
-    }
-
-    public void update(Reservation beforeReservation, Reservation newReservation, LocalDateTime localDateTime) {
-        validateUpdate(beforeReservation, newReservation, localDateTime);
-        reservations.remove(beforeReservation);
-        reservations.add(newReservation);
-    }
-
-    private void validateUpdate(Reservation beforeReservation, Reservation newReservation,
-                                LocalDateTime localDateTime) {
-        newReservation.validateNotPast(localDateTime);
-        beforeReservation.validateAvailableModify(localDateTime);
-        // 이전 예약과 새 예약이 같은 슬롯일 때는, 중복 예외 발생하지 않도록
-        if (!beforeReservation.isSameSlot(newReservation)) {
-            validateUnique(newReservation);
-        }
-    }
-
-    public void delete(Reservation deleteReservation, LocalDateTime localDateTime) {
-        validateDelete(deleteReservation, localDateTime);
-        reservations.remove(deleteReservation);
-    }
-
-    private void validateDelete(Reservation deleteReservation, LocalDateTime localDateTime) {
-        deleteReservation.validateNotPast(localDateTime);
+    public Stream<Reservation> stream() {
+        return reservations.stream();
     }
 
     public List<ReservationTime> unavailableTimes(LocalDate date, LocalDateTime now, Theme theme) {
@@ -69,7 +32,7 @@ public class Reservations {
                 .toList();
     }
 
-    public List<Theme> themeRankingByReservationCounts(RankingPeriod rankingPeriod, int limit) {
+    public List<Theme> themeRankingByReservationCounts(RankingPeriod rankingPeriod) {
         Map<Theme, Long> reservationCountsByTheme = reservationCountsByTheme(rankingPeriod);
 
         List<Theme> ranking = reservationCountsByTheme.entrySet().stream()
@@ -78,10 +41,10 @@ public class Reservations {
                 .toList()
                 .reversed();
 
-        if (ranking.size() < limit) {
+        if (ranking.size() < RANKING_LIMIT) {
             return ranking;
         }
-        return ranking.subList(0, limit);
+        return ranking.subList(0, RANKING_LIMIT);
     }
 
     private Map<Theme, Long> reservationCountsByTheme(RankingPeriod rankingPeriod) {

@@ -1,16 +1,16 @@
 package roomescape.service.dto.response;
 
 import java.time.LocalTime;
-import roomescape.entity.ReservationTimeEntity;
+import roomescape.domain.ReservationTime;
 
 public record ServiceReservationTimeResponse(
         Long id,
         LocalTime startAt
 ) {
-    public static ServiceReservationTimeResponse from(ReservationTimeEntity reservationTimeEntity) {
+    public static ServiceReservationTimeResponse from(ReservationTime reservationTime) {
         return new ServiceReservationTimeResponse(
-                reservationTimeEntity.getId(),
-                reservationTimeEntity.getStartAt()
+                reservationTime.getId(),
+                reservationTime.getStartAt()
         );
     }
 }

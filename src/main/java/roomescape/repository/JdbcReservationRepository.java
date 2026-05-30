@@ -4,7 +4,6 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.List;
 import java.util.Optional;
 import org.springframework.context.annotation.Primary;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -14,9 +13,9 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import roomescape.domain.Reservation;
-import roomescape.entity.ReservationEntity;
-import roomescape.entity.ReservationTimeEntity;
-import roomescape.entity.ThemeEntity;
+import roomescape.domain.ReservationTime;
+import roomescape.domain.Reservations;
+import roomescape.domain.Theme;
 
 @Primary
 @Repository
@@ -29,8 +28,7 @@ public class JdbcReservationRepository implements ReservationRepository {
     }
 
     @Override
-    public ReservationEntity create(Reservation reservation, ReservationTimeEntity timeEntity,
-                                    ThemeEntity themeEntity) {
+    public Reservation create(Reservation reservation) {
         String sql = "INSERT INTO `reservation`(`name`, `date`, `time_id`, `theme_id`) VALUES (?, ?, ?, ?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -38,19 +36,19 @@ public class JdbcReservationRepository implements ReservationRepository {
             PreparedStatement preparedStatement = connection.prepareStatement(sql, new String[]{"id"});
             preparedStatement.setString(1, reservation.getName());
             preparedStatement.setDate(2, Date.valueOf(reservation.getDate()));
-            preparedStatement.setLong(3, timeEntity.getId());
-            preparedStatement.setLong(4, themeEntity.getId());
+            preparedStatement.setLong(3, reservation.getTime().getId());
+            preparedStatement.setLong(4, reservation.getTheme().getId());
 
             return preparedStatement;
         }, keyHolder);
 
         Long id = keyHolder.getKey().longValue();
-        return new ReservationEntity(id, reservation.getName(), reservation.getDate(), timeEntity,
-                themeEntity);
+        return new Reservation(id, reservation.getName(), reservation.getDate(), reservation.getTime(),
+                reservation.getTheme());
     }
 
     @Override
-    public Optional<ReservationEntity> readById(Long id) {
+    public Optional<Reservation> readById(Long id) {
         String sql =
                 "SELECT r.id, r.name, r.date, t.id as time_id, t.start_at as time_value, th.id as theme_id, th.name as theme_name, th.description as theme_description, th.thumbnail_url as theme_thumbnail_url "
                         + "FROM `reservation` r "
@@ -67,7 +65,7 @@ public class JdbcReservationRepository implements ReservationRepository {
     }
 
     @Override
-    public List<ReservationEntity> readByName(String name) {
+    public Reservations readByName(String name) {
         String sql =
                 "SELECT r.id, r.name, r.date, t.id as time_id, t.start_at as time_value, th.id as theme_id, th.name as theme_name, th.description as theme_description, th.thumbnail_url as theme_thumbnail_url "
                         + "FROM `reservation` r "
@@ -75,28 +73,28 @@ public class JdbcReservationRepository implements ReservationRepository {
                         + "INNER JOIN `theme` th ON r.theme_id = th.id "
                         + "WHERE r.name = (?)";
 
-        return jdbcTemplate.query(sql, reservationRowMapper(), name);
+        return new Reservations(jdbcTemplate.query(sql, reservationRowMapper(), name));
     }
 
     @Override
-    public List<ReservationEntity> readAll() {
+    public Reservations readAll() {
         String sql =
                 "SELECT r.id, r.name, r.date, t.id as time_id, t.start_at as time_value, th.id as theme_id, th.name as theme_name, th.description as theme_description, th.thumbnail_url as theme_thumbnail_url "
                         + "FROM `reservation` r "
                         + "INNER JOIN `reservation_time` t ON r.time_id = t.id "
                         + "INNER JOIN `theme` th ON r.theme_id = th.id";
 
-        return jdbcTemplate.query(sql, reservationRowMapper());
+        return new Reservations(jdbcTemplate.query(sql, reservationRowMapper()));
     }
 
     @Override
-    public void update(Long id, LocalDate date, Long timeId) {
+    public void update(Reservation reservation) {
         String sql = "UPDATE `reservation` SET `date` = (?), `time_id` = (?) WHERE `id` = (?)";
 
-        jdbcTemplate.update(sql, date, timeId, id);
+        jdbcTemplate.update(sql, reservation.getDate(), reservation.getTime().getId(), reservation.getId());
     }
 
-    private static RowMapper<ReservationEntity> reservationRowMapper() {
+    private static RowMapper<Reservation> reservationRowMapper() {
         return (resultSet, rowNum) -> {
             Long id = resultSet.getLong("id");
             String name = resultSet.getString("name");
@@ -108,17 +106,17 @@ public class JdbcReservationRepository implements ReservationRepository {
             String themeDescription = resultSet.getString("theme_description");
             String themeThumbnailUrl = resultSet.getString("theme_thumbnail_url");
 
-            ReservationTimeEntity reservationTimeEntity = new ReservationTimeEntity(timeId, timeValue);
-            ThemeEntity themeEntity = new ThemeEntity(themeId, themeName, themeDescription, themeThumbnailUrl);
-            return new ReservationEntity(id, name, date, reservationTimeEntity, themeEntity);
+            ReservationTime reservationTime = new ReservationTime(timeId, timeValue);
+            Theme theme = new Theme(themeId, themeName, themeDescription, themeThumbnailUrl);
+            return new Reservation(id, name, date, reservationTime, theme);
         };
     }
 
     @Override
-    public void delete(Long id) {
+    public void delete(Reservation reservation) {
         String sql = "DELETE FROM `reservation` WHERE `id` = (?)";
 
-        jdbcTemplate.update(sql, id);
+        jdbcTemplate.update(sql, reservation.getId());
     }
 
     @Override
@@ -130,8 +128,15 @@ public class JdbcReservationRepository implements ReservationRepository {
 
     @Override
     public boolean existByThemeId(Long themeId) {
-        String sql = "SELECT EXISTS (SELECT 1 FROM `reservation` WHERE `time_id` = (?)) AS exist";
+        String sql = "SELECT EXISTS (SELECT 1 FROM `reservation` WHERE `theme_id` = (?)) AS exist";
 
         return Boolean.TRUE.equals(jdbcTemplate.queryForObject(sql, Boolean.class, themeId));
+    }
+
+    @Override
+    public boolean existBySlot(LocalDate date, Long timeId, Long themeId) {
+        String sql = "SELECT EXISTS (SELECT 1 FROM `reservation` WHERE `date` = (?) AND `time_id` = (?) AND `theme_id` = (?)) AS exist";
+
+        return Boolean.TRUE.equals(jdbcTemplate.queryForObject(sql, Boolean.class, date, timeId, themeId));
     }
 }

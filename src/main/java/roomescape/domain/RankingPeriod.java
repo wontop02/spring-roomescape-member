@@ -1,7 +1,5 @@
 package roomescape.domain;
 
-import static roomescape.service.ThemeService.MAX_RANKING_PERIOD;
-
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import roomescape.exception.custom.InvalidDomainValueException;
@@ -10,6 +8,8 @@ import roomescape.exception.custom.RankingPeriodExceedsLimitException;
 import roomescape.exception.custom.RankingPeriodPastDateOnlyException;
 
 public class RankingPeriod {
+
+    public static final int MAX_RANKING_PERIOD = 366;
 
     private final LocalDate startDate;
     private final LocalDate endDate;

@@ -2,93 +2,89 @@ package roomescape.service;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import roomescape.domain.Reservation;
 import roomescape.domain.Reservations;
-import roomescape.entity.ReservationEntity;
-import roomescape.entity.ReservationTimeEntity;
-import roomescape.entity.ThemeEntity;
 import roomescape.exception.custom.CannotDeleteReservationTimeInUseException;
 import roomescape.exception.custom.CannotDeleteThemeInUseException;
+import roomescape.exception.custom.ReservationAlreadyExistsException;
 import roomescape.exception.custom.ReservationNotExistsException;
 import roomescape.repository.ReservationRepository;
-import roomescape.service.dto.request.ServiceReservationCreateRequest;
-import roomescape.service.dto.request.ServiceReservationUpdateRequest;
-import roomescape.service.dto.response.ServiceReservationResponse;
 
 @Service
 @Transactional(readOnly = true)
 public class ReservationService {
 
     private final ReservationRepository reservationRepository;
-    private final Reservations reservations;
     private final Clock clock;
 
     public ReservationService(ReservationRepository reservationRepository, Clock clock) {
         this.reservationRepository = reservationRepository;
-        this.reservations = new Reservations(
-                reservationRepository.readAll().stream().map(ReservationEntity::toDomain).toList());
         this.clock = clock;
     }
 
     @Transactional
-    public ServiceReservationResponse create(ServiceReservationCreateRequest request,
-                                             ReservationTimeEntity reservationTimeEntity, ThemeEntity themeEntity) {
-        Reservation reservation = request.toReservation(reservationTimeEntity.toDomain(), themeEntity.toDomain());
-        reservations.create(reservation, LocalDateTime.now(clock));
+    public Reservation create(Reservation reservationWithoutId) {
+        validateCreate(reservationWithoutId);
 
-        ReservationEntity reservationEntity = reservationRepository.create(reservation, reservationTimeEntity,
-                themeEntity);
-
-        return ServiceReservationResponse.from(reservationEntity);
+        return reservationRepository.create(reservationWithoutId);
     }
 
-    public List<ServiceReservationResponse> readByName(String name) {
-        return reservationRepository.readByName(name).stream()
-                .map(ServiceReservationResponse::from)
-                .toList();
+    private void validateCreate(Reservation reservation) {
+        reservation.validateNotPast(LocalDateTime.now(clock));
+        validateUnique(reservation);
     }
 
-    public List<ServiceReservationResponse> readAll() {
-        return reservationRepository.readAll().stream()
-                .map(ServiceReservationResponse::from)
-                .toList();
+    private void validateUnique(Reservation reservation) {
+        boolean isDuplicated = reservationRepository.existBySlot(reservation.getDate(), reservation.getTime().getId(),
+                reservation.getTheme().getId());
+        if (isDuplicated) {
+            throw new ReservationAlreadyExistsException();
+        }
+    }
+
+    public Reservations readByName(String name) {
+        return reservationRepository.readByName(name);
+    }
+
+    public Reservations readAll() {
+        return reservationRepository.readAll();
     }
 
     @Transactional
-    public ServiceReservationResponse update(Long id, ServiceReservationUpdateRequest request,
-                                             ReservationTimeEntity newReservationTimeEntity) {
-        ReservationEntity beforeReservationEntity = readReservation(id);
-        Reservation beforeReservation = beforeReservationEntity.toDomain();
+    public void update(Reservation beforeReservation, Reservation newReservation) {
+        validateUpdate(beforeReservation, newReservation);
 
-        Reservation newReservation = request.toReservation(beforeReservation,
-                newReservationTimeEntity.toDomain());
-
-        reservations.update(beforeReservation, newReservation, LocalDateTime.now(clock));
-
-        reservationRepository.update(id, request.date(), request.timeId());
-        ReservationEntity reservationEntity = new ReservationEntity(id, beforeReservation.getName(), request.date(),
-                newReservationTimeEntity, beforeReservationEntity.getTheme());
-
-        return ServiceReservationResponse.from(reservationEntity);
+        reservationRepository.update(newReservation);
     }
 
-    public ReservationEntity readReservation(Long reservationId) {
+    private void validateUpdate(Reservation beforeReservation, Reservation newReservation) {
+        LocalDateTime now = LocalDateTime.now(clock);
+
+        newReservation.validateNotPast(now);
+        beforeReservation.validateAvailableModify(now);
+
+        // 이전 예약과 새 예약이 같은 슬롯일 때는, 중복 예외 발생하지 않도록
+        if (!beforeReservation.isSameSlot(newReservation)) {
+            validateUnique(newReservation);
+        }
+    }
+
+    public Reservation readReservation(Long reservationId) {
         return reservationRepository.readById(reservationId)
                 .orElseThrow(ReservationNotExistsException::new);
     }
 
     @Transactional
     public void delete(Long id) {
-        Reservation reservation = readReservation(id).toDomain();
-        reservations.delete(reservation, LocalDateTime.now(clock));
-        reservationRepository.delete(id);
+        Reservation reservation = readReservation(id);
+        validateDelete(reservation);
+        reservationRepository.delete(reservation);
     }
 
-    public Reservations reservations() {
-        return reservations;
+    private void validateDelete(Reservation reservation) {
+        reservation.validateNotPast(LocalDateTime.now(clock));
     }
 
     public void validateReferencedTime(Long id) {

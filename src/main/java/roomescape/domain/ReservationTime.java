@@ -6,10 +6,16 @@ import roomescape.exception.custom.InvalidDomainValueException;
 
 public class ReservationTime {
 
+    private final Long id;
     private final LocalTime startAt;
 
     public ReservationTime(LocalTime startAt) {
+        this(null, startAt);
+    }
+
+    public ReservationTime(Long id, LocalTime startAt) {
         validate(startAt);
+        this.id = id;
         this.startAt = startAt;
     }
 
@@ -25,6 +31,10 @@ public class ReservationTime {
 
     public LocalTime getStartAt() {
         return startAt;
+    }
+
+    public Long getId() {
+        return id;
     }
 
     @Override

@@ -1,11 +1,14 @@
 package roomescape.facade;
 
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import roomescape.domain.ReservationTime;
 import roomescape.domain.Reservations;
-import roomescape.entity.ThemeEntity;
+import roomescape.domain.Theme;
 import roomescape.service.ReservationService;
 import roomescape.service.ReservationTimeService;
 import roomescape.service.ThemeService;
@@ -20,29 +23,44 @@ public class ReservationTimeFacade {
     private final ReservationTimeService reservationTimeService;
     private final ReservationService reservationService;
     private final ThemeService themeService;
+    private final Clock clock;
 
     public ReservationTimeFacade(ReservationTimeService reservationTimeService, ReservationService reservationService,
-                                 ThemeService themeService) {
+                                 ThemeService themeService, Clock clock) {
         this.reservationTimeService = reservationTimeService;
         this.reservationService = reservationService;
         this.themeService = themeService;
+        this.clock = clock;
     }
 
     @Transactional
     public ServiceReservationTimeResponse create(ServiceReservationTimeCreateRequest request) {
-        return reservationTimeService.create(request);
+        ReservationTime reservationTimeWithoutId = request.toReservationTime();
+        ReservationTime reservationTime = reservationTimeService.create(reservationTimeWithoutId);
+
+        return ServiceReservationTimeResponse.from(reservationTime);
     }
 
     public List<ServiceReservationTimeResponse> readAll() {
-        return reservationTimeService.readAll();
+        return reservationTimeService.readAll().stream()
+                .map(ServiceReservationTimeResponse::from)
+                .toList();
     }
 
     public List<ServiceReservationTimeAvailabilityResponse> readAvailabilityByDateAndTheme(LocalDate date,
                                                                                            Long themeId) {
-        ThemeEntity themeEntity = themeService.readTheme(themeId);
-        Reservations reservations = reservationService.reservations();
+        Theme theme = themeService.readTheme(themeId);
+        Reservations reservations = reservationService.readAll();
 
-        return reservationTimeService.readAvailabilityByDateAndTheme(reservations, date, themeEntity);
+        List<ReservationTime> unavailableTimes = reservations.unavailableTimes(date, LocalDateTime.now(clock), theme);
+
+        return reservationTimeService.readAll().stream()
+                .map(reservationTime -> {
+                    if (unavailableTimes.contains(reservationTime)) {
+                        return ServiceReservationTimeAvailabilityResponse.from(reservationTime, false);
+                    }
+                    return ServiceReservationTimeAvailabilityResponse.from(reservationTime, true);
+                }).toList();
     }
 
     @Transactional

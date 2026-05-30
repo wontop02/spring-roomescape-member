@@ -12,7 +12,6 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import roomescape.domain.ReservationTime;
-import roomescape.entity.ReservationTimeEntity;
 
 @Primary
 @Repository
@@ -25,7 +24,7 @@ public class JdbcReservationTimeRepository implements ReservationTimeRepository 
     }
 
     @Override
-    public ReservationTimeEntity create(ReservationTime reservationTime) {
+    public ReservationTime create(ReservationTime reservationTime) {
         String sql = "INSERT INTO `reservation_time`(`start_at`) VALUES (?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -37,18 +36,18 @@ public class JdbcReservationTimeRepository implements ReservationTimeRepository 
         }, keyHolder);
 
         Long id = keyHolder.getKey().longValue();
-        return new ReservationTimeEntity(id, reservationTime.getStartAt());
+        return new ReservationTime(id, reservationTime.getStartAt());
     }
 
     @Override
-    public Optional<ReservationTimeEntity> read(Long id) {
+    public Optional<ReservationTime> readById(Long id) {
         String sql = "SELECT * FROM `reservation_time` WHERE `id` = (?)";
 
         try {
             return Optional.ofNullable(
                     jdbcTemplate.queryForObject(sql, (resultSet, rowNum) -> {
                         LocalTime startAt = resultSet.getTime("start_at").toLocalTime();
-                        return new ReservationTimeEntity(id, startAt);
+                        return new ReservationTime(id, startAt);
                     }, id));
         } catch (EmptyResultDataAccessException exception) {
             return Optional.empty();
@@ -56,20 +55,27 @@ public class JdbcReservationTimeRepository implements ReservationTimeRepository 
     }
 
     @Override
-    public List<ReservationTimeEntity> readAll() {
+    public List<ReservationTime> readAll() {
         String sql = "SELECT * FROM `reservation_time` "
                 + "ORDER BY start_at ASC";
 
         return jdbcTemplate.query(sql, (resultSet, rowNum) -> {
             Long id = resultSet.getLong("id");
             LocalTime startAt = resultSet.getTime("start_at").toLocalTime();
-            return new ReservationTimeEntity(id, startAt);
+            return new ReservationTime(id, startAt);
         });
     }
 
     @Override
-    public void delete(Long id) {
+    public void delete(ReservationTime reservationTime) {
         String sql = "DELETE FROM `reservation_time` WHERE `id` = (?)";
-        jdbcTemplate.update(sql, id);
+        jdbcTemplate.update(sql, reservationTime.getId());
+    }
+
+    @Override
+    public boolean existByStartAt(LocalTime startAt) {
+        String sql = "SELECT EXISTS (SELECT 1 FROM `reservation_time` WHERE `start_at` = (?)) AS exist";
+
+        return Boolean.TRUE.equals(jdbcTemplate.queryForObject(sql, Boolean.class, startAt));
     }
 }

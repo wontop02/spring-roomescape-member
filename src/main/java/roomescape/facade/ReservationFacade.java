@@ -3,8 +3,9 @@ package roomescape.facade;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import roomescape.entity.ReservationTimeEntity;
-import roomescape.entity.ThemeEntity;
+import roomescape.domain.Reservation;
+import roomescape.domain.ReservationTime;
+import roomescape.domain.Theme;
 import roomescape.service.ReservationService;
 import roomescape.service.ReservationTimeService;
 import roomescape.service.ThemeService;
@@ -29,24 +30,36 @@ public class ReservationFacade {
 
     @Transactional
     public ServiceReservationResponse create(ServiceReservationCreateRequest request) {
-        ReservationTimeEntity reservationTimeEntity = reservationTimeService.readReservationTime(request.timeId());
-        ThemeEntity themeEntity = themeService.readTheme(request.themeId());
+        ReservationTime reservationTime = reservationTimeService.readReservationTime(request.timeId());
+        Theme theme = themeService.readTheme(request.themeId());
 
-        return reservationService.create(request, reservationTimeEntity, themeEntity);
+        Reservation reservationWithoutId = request.toReservation(reservationTime, theme);
+        Reservation reservation = reservationService.create(reservationWithoutId);
+        return ServiceReservationResponse.from(reservation);
     }
 
     public List<ServiceReservationResponse> readByName(String name) {
-        return reservationService.readByName(name);
+        return reservationService.readByName(name).stream()
+                .map(ServiceReservationResponse::from)
+                .toList();
     }
 
     public List<ServiceReservationResponse> readAll() {
-        return reservationService.readAll();
+        return reservationService.readAll().stream()
+                .map(ServiceReservationResponse::from)
+                .toList();
     }
 
     @Transactional
     public ServiceReservationResponse update(Long id, ServiceReservationUpdateRequest request) {
-        ReservationTimeEntity newReservationTimeEntity = reservationTimeService.readReservationTime(request.timeId());
-        return reservationService.update(id, request, newReservationTimeEntity);
+        Reservation beforeReservation = reservationService.readReservation(id);
+
+        ReservationTime newReservationTime = reservationTimeService.readReservationTime(request.timeId());
+        Reservation newReservation = request.toReservation(beforeReservation, newReservationTime);
+
+        reservationService.update(beforeReservation, newReservation);
+
+        return ServiceReservationResponse.from(newReservation);
     }
 
     @Transactional

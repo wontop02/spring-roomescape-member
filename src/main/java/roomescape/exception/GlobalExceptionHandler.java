@@ -1,6 +1,6 @@
 package roomescape.exception;
 
-import static roomescape.service.ThemeService.MAX_RANKING_PERIOD;
+import static roomescape.domain.RankingPeriod.MAX_RANKING_PERIOD;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

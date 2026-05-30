@@ -1,28 +1,25 @@
-package roomescape.repository;
+package roomescape.domain;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
-import roomescape.domain.Reservation;
-import roomescape.entity.ReservationEntity;
-import roomescape.entity.ReservationTimeEntity;
-import roomescape.entity.ThemeEntity;
 
 public interface ReservationRepository {
 
-    ReservationEntity create(Reservation reservation, ReservationTimeEntity timeEntity, ThemeEntity themeEntity);
+    Reservation create(Reservation reservation);
 
-    Optional<ReservationEntity> readById(Long id);
+    Optional<Reservation> readById(Long id);
 
-    List<ReservationEntity> readByName(String name);
+    Reservations readByName(String name);
 
-    List<ReservationEntity> readAll();
+    Reservations readAll();
 
-    void update(Long id, LocalDate date, Long timeId);
+    void update(Reservation reservation);
 
-    void delete(Long id);
+    void delete(Reservation reservation);
 
     boolean existByTimeId(Long timeId);
 
     boolean existByThemeId(Long themeId);
+
+    boolean existBySlot(LocalDate date, Long timeId, Long themeId);
 }

@@ -1,17 +1,15 @@
-package roomescape.repository;
+package roomescape.domain;
 
 import java.util.List;
 import java.util.Optional;
-import roomescape.domain.Theme;
-import roomescape.entity.ThemeEntity;
 
 public interface ThemeRepository {
 
-    ThemeEntity create(Theme theme);
+    Theme create(Theme theme);
 
-    Optional<ThemeEntity> read(Long id);
+    Optional<Theme> readById(Long id);
 
-    List<ThemeEntity> readAll();
+    List<Theme> readAll();
 
-    void delete(Long id);
+    void delete(Theme theme);
 }

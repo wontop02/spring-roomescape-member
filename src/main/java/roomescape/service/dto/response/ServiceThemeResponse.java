@@ -1,6 +1,6 @@
 package roomescape.service.dto.response;
 
-import roomescape.entity.ThemeEntity;
+import roomescape.domain.Theme;
 
 public record ServiceThemeResponse(
         Long id,
@@ -8,7 +8,7 @@ public record ServiceThemeResponse(
         String description,
         String thumbnailUrl
 ) {
-    public static ServiceThemeResponse from(ThemeEntity theme) {
+    public static ServiceThemeResponse from(Theme theme) {
         return new ServiceThemeResponse(
                 theme.getId(),
                 theme.getName(),
