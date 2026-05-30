@@ -7,17 +7,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import roomescape.entity.ReservationEntity;
 import roomescape.exception.custom.ReservationAlreadyExistsException;
 
 public class Reservations {
 
     private final List<Reservation> reservations;
 
-    public Reservations(List<ReservationEntity> allReservations) {
-        reservations = new ArrayList<>(allReservations.stream()
-                .map(ReservationEntity::toDomain)
-                .toList());
+    public Reservations(List<Reservation> allReservations) {
+        reservations = new ArrayList<>(allReservations);
     }
 
     public void create(Reservation newReservation, LocalDateTime localDateTime) {

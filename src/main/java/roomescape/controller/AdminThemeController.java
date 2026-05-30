@@ -11,22 +11,22 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import roomescape.controller.dto.request.ControllerThemeCreateRequest;
 import roomescape.controller.dto.response.ControllerThemeResponse;
-import roomescape.service.ThemeService;
+import roomescape.facade.ThemeFacade;
 import roomescape.service.dto.response.ServiceThemeResponse;
 
 @RestController
 @RequestMapping("/admin/themes")
 public class AdminThemeController {
 
-    private final ThemeService themeService;
+    private final ThemeFacade themeFacade;
 
-    public AdminThemeController(ThemeService themeService) {
-        this.themeService = themeService;
+    public AdminThemeController(ThemeFacade themeFacade) {
+        this.themeFacade = themeFacade;
     }
 
     @PostMapping
     public ResponseEntity<ControllerThemeResponse> create(@Valid @RequestBody ControllerThemeCreateRequest requestDto) {
-        ServiceThemeResponse serviceResponse = themeService.create(requestDto.toServiceThemeRequest());
+        ServiceThemeResponse serviceResponse = themeFacade.create(requestDto.toServiceThemeRequest());
         ControllerThemeResponse controllerResponse = ControllerThemeResponse.from(serviceResponse);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -35,7 +35,7 @@ public class AdminThemeController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        themeService.delete(id);
+        themeFacade.delete(id);
 
         return ResponseEntity
                 .noContent()

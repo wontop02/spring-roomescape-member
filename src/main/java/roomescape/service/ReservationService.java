@@ -10,12 +10,10 @@ import roomescape.domain.Reservations;
 import roomescape.entity.ReservationEntity;
 import roomescape.entity.ReservationTimeEntity;
 import roomescape.entity.ThemeEntity;
+import roomescape.exception.custom.CannotDeleteReservationTimeInUseException;
+import roomescape.exception.custom.CannotDeleteThemeInUseException;
 import roomescape.exception.custom.ReservationNotExistsException;
-import roomescape.exception.custom.ReservationTimeNotExistsException;
-import roomescape.exception.custom.ThemeNotExistsException;
 import roomescape.repository.ReservationRepository;
-import roomescape.repository.ReservationTimeRepository;
-import roomescape.repository.ThemeRepository;
 import roomescape.service.dto.request.ServiceReservationCreateRequest;
 import roomescape.service.dto.request.ServiceReservationUpdateRequest;
 import roomescape.service.dto.response.ServiceReservationResponse;
@@ -25,28 +23,19 @@ import roomescape.service.dto.response.ServiceReservationResponse;
 public class ReservationService {
 
     private final ReservationRepository reservationRepository;
-    private final ReservationTimeRepository reservationTimeRepository;
-    private final ThemeRepository themeRepository;
+    private final Reservations reservations;
     private final Clock clock;
 
-    public ReservationService(ReservationRepository reservationRepository,
-                              ReservationTimeRepository reservationTimeRepository, ThemeRepository themeRepository,
-                              Clock clock) {
+    public ReservationService(ReservationRepository reservationRepository, Clock clock) {
         this.reservationRepository = reservationRepository;
-        this.reservationTimeRepository = reservationTimeRepository;
-        this.themeRepository = themeRepository;
+        this.reservations = new Reservations(
+                reservationRepository.readAll().stream().map(ReservationEntity::toDomain).toList());
         this.clock = clock;
     }
 
-    public Reservations makeReservations() {
-        return new Reservations(reservationRepository.readAll());
-    }
-
     @Transactional
-    public ServiceReservationResponse create(Reservations reservations, ServiceReservationCreateRequest request) {
-        ReservationTimeEntity reservationTimeEntity = readReservationTime(request.timeId());
-        ThemeEntity themeEntity = readTheme(request.themeId());
-
+    public ServiceReservationResponse create(ServiceReservationCreateRequest request,
+                                             ReservationTimeEntity reservationTimeEntity, ThemeEntity themeEntity) {
         Reservation reservation = request.toReservation(reservationTimeEntity.toDomain(), themeEntity.toDomain());
         reservations.create(reservation, LocalDateTime.now(clock));
 
@@ -54,16 +43,6 @@ public class ReservationService {
                 themeEntity);
 
         return ServiceReservationResponse.from(reservationEntity);
-    }
-
-    private ReservationTimeEntity readReservationTime(Long timeId) {
-        return reservationTimeRepository.read(timeId)
-                .orElseThrow(ReservationTimeNotExistsException::new);
-    }
-
-    private ThemeEntity readTheme(Long themeId) {
-        return themeRepository.read(themeId)
-                .orElseThrow(ThemeNotExistsException::new);
     }
 
     public List<ServiceReservationResponse> readByName(String name) {
@@ -79,10 +58,8 @@ public class ReservationService {
     }
 
     @Transactional
-    public ServiceReservationResponse update(Reservations reservations, Long id,
-                                             ServiceReservationUpdateRequest request) {
-        ReservationTimeEntity newReservationTimeEntity = readReservationTime(request.timeId());
-
+    public ServiceReservationResponse update(Long id, ServiceReservationUpdateRequest request,
+                                             ReservationTimeEntity newReservationTimeEntity) {
         ReservationEntity beforeReservationEntity = readReservation(id);
         Reservation beforeReservation = beforeReservationEntity.toDomain();
 
@@ -98,15 +75,31 @@ public class ReservationService {
         return ServiceReservationResponse.from(reservationEntity);
     }
 
-    private ReservationEntity readReservation(Long reservationId) {
+    public ReservationEntity readReservation(Long reservationId) {
         return reservationRepository.readById(reservationId)
                 .orElseThrow(ReservationNotExistsException::new);
     }
 
     @Transactional
-    public void delete(Reservations reservations, Long id) {
+    public void delete(Long id) {
         Reservation reservation = readReservation(id).toDomain();
         reservations.delete(reservation, LocalDateTime.now(clock));
         reservationRepository.delete(id);
+    }
+
+    public Reservations reservations() {
+        return reservations;
+    }
+
+    public void validateReferencedTime(Long id) {
+        if (reservationRepository.existByTimeId(id)) {
+            throw new CannotDeleteReservationTimeInUseException();
+        }
+    }
+
+    public void validateReferencedTheme(Long id) {
+        if (reservationRepository.existByThemeId(id)) {
+            throw new CannotDeleteThemeInUseException();
+        }
     }
 }

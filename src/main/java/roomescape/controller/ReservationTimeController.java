@@ -16,8 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import roomescape.controller.dto.request.ControllerReservationTimeCreateRequest;
 import roomescape.controller.dto.response.ControllerReservationTimeAvailabilityResponse;
 import roomescape.controller.dto.response.ControllerReservationTimeResponse;
-import roomescape.domain.ReservationTimes;
-import roomescape.service.ReservationTimeService;
+import roomescape.facade.ReservationTimeFacade;
 import roomescape.service.dto.response.ServiceReservationTimeAvailabilityResponse;
 import roomescape.service.dto.response.ServiceReservationTimeResponse;
 
@@ -25,19 +24,17 @@ import roomescape.service.dto.response.ServiceReservationTimeResponse;
 @RequestMapping(value = "/times")
 public class ReservationTimeController {
 
-    private final ReservationTimeService reservationTimeService;
-    private final ReservationTimes reservationTimes;
+    private final ReservationTimeFacade reservationTimeFacade;
 
-    public ReservationTimeController(ReservationTimeService reservationTimeService) {
-        this.reservationTimeService = reservationTimeService;
-        this.reservationTimes = reservationTimeService.makeReservationTimes();
+    public ReservationTimeController(ReservationTimeFacade reservationTimeFacade) {
+        this.reservationTimeFacade = reservationTimeFacade;
     }
 
     @PostMapping
     public ResponseEntity<ControllerReservationTimeResponse> create(
-            @Valid @RequestBody ControllerReservationTimeCreateRequest requestDto) {
-        ServiceReservationTimeResponse serviceResponse = reservationTimeService.create(reservationTimes,
-                requestDto.toServiceReservationTimeRequest());
+            @Valid @RequestBody ControllerReservationTimeCreateRequest request) {
+        ServiceReservationTimeResponse serviceResponse = reservationTimeFacade.create(
+                request.toServiceReservationTimeRequest());
         ControllerReservationTimeResponse controllerResponse = ControllerReservationTimeResponse.from(serviceResponse);
         return ResponseEntity.
                 status(HttpStatus.CREATED)
@@ -46,7 +43,7 @@ public class ReservationTimeController {
 
     @GetMapping
     public ResponseEntity<List<ControllerReservationTimeResponse>> readAll() {
-        List<ServiceReservationTimeResponse> serviceResponses = reservationTimeService.readAll();
+        List<ServiceReservationTimeResponse> serviceResponses = reservationTimeFacade.readAll();
         List<ControllerReservationTimeResponse> controllerResponses = serviceResponses.stream()
                 .map(ControllerReservationTimeResponse::from)
                 .toList();
@@ -57,7 +54,7 @@ public class ReservationTimeController {
     public ResponseEntity<List<ControllerReservationTimeAvailabilityResponse>> readAvailabilityByDateAndTheme(
             @RequestParam("date") LocalDate date, @RequestParam("themeId") Long themeId) {
 
-        List<ServiceReservationTimeAvailabilityResponse> serviceResponses = reservationTimeService.readAvailabilityByDateAndTheme(
+        List<ServiceReservationTimeAvailabilityResponse> serviceResponses = reservationTimeFacade.readAvailabilityByDateAndTheme(
                 date, themeId);
 
         List<ControllerReservationTimeAvailabilityResponse> controllerResponses = serviceResponses.stream()
@@ -68,8 +65,7 @@ public class ReservationTimeController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-
-        reservationTimeService.delete(id);
+        reservationTimeFacade.delete(id);
         return ResponseEntity
                 .noContent()
                 .build();

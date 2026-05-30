@@ -2,17 +2,14 @@ package roomescape.domain;
 
 import java.util.ArrayList;
 import java.util.List;
-import roomescape.entity.ReservationTimeEntity;
 import roomescape.exception.custom.ReservationTimeAlreadyExistsException;
 
 public class ReservationTimes {
 
     private final List<ReservationTime> reservationTimes;
 
-    public ReservationTimes(List<ReservationTimeEntity> allReservationTimes) {
-        reservationTimes = new ArrayList<>(allReservationTimes.stream()
-                .map(ReservationTimeEntity::toDomain)
-                .toList());
+    public ReservationTimes(List<ReservationTime> allReservationTimes) {
+        reservationTimes = new ArrayList<>(allReservationTimes);
     }
 
     public void create(ReservationTime newReservationTime) {

@@ -8,8 +8,8 @@ import org.springframework.transaction.annotation.Transactional;
 import roomescape.domain.RankingPeriod;
 import roomescape.domain.Reservations;
 import roomescape.domain.Theme;
-import roomescape.exception.custom.CannotDeleteThemeInUseException;
-import roomescape.repository.ReservationRepository;
+import roomescape.entity.ThemeEntity;
+import roomescape.exception.custom.ThemeNotExistsException;
 import roomescape.repository.ThemeRepository;
 import roomescape.service.dto.request.ServiceThemeCreateRequest;
 import roomescape.service.dto.response.ServiceThemeResponse;
@@ -22,12 +22,10 @@ public class ThemeService {
     public static final int MAX_RANKING_PERIOD = 366;
 
     private final ThemeRepository themeRepository;
-    private final ReservationRepository reservationRepository;
     private final Clock clock;
 
-    public ThemeService(ThemeRepository themeRepository, ReservationRepository reservationRepository, Clock clock) {
+    public ThemeService(ThemeRepository themeRepository, Clock clock) {
         this.themeRepository = themeRepository;
-        this.reservationRepository = reservationRepository;
         this.clock = clock;
     }
 
@@ -43,26 +41,23 @@ public class ThemeService {
                 .toList();
     }
 
-    @Transactional
-    public void delete(Long id) {
-        validateReferencedTheme(id);
-        themeRepository.delete(id);
-    }
-
-    private void validateReferencedTheme(Long id) {
-        if (reservationRepository.existByThemeId(id)) {
-            throw new CannotDeleteThemeInUseException();
-        }
-    }
-
-    public List<ServiceThemeResponse> readRanking(LocalDate startDate, LocalDate endDate) {
+    public List<ServiceThemeResponse> readRanking(LocalDate startDate, LocalDate endDate, Reservations reservations) {
         RankingPeriod rankingPeriod = new RankingPeriod(startDate, endDate, LocalDate.now(clock));
-        Reservations reservations = new Reservations(reservationRepository.readAll());
         List<Theme> ranking = reservations.themeRankingByReservationCounts(rankingPeriod, RANKING_LIMIT);
 
         return themeRepository.readAll().stream()
                 .filter(themeEntity -> ranking.contains(themeEntity.toDomain()))
                 .map(ServiceThemeResponse::from)
                 .toList();
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        themeRepository.delete(id);
+    }
+
+    public ThemeEntity readTheme(Long themeId) {
+        return themeRepository.read(themeId)
+                .orElseThrow(ThemeNotExistsException::new);
     }
 }
