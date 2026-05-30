@@ -1,31 +1,14 @@
 package roomescape.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import roomescape.exception.custom.ReservationAlreadyExistsException;
 
 public class ReservationsTest {
-
-    private Reservations reservations = new Reservations(new ArrayList<>());
-
-    @Test
-    void validateUniqueExceptionTest() {
-        ReservationTime reservationTime = new ReservationTime(LocalTime.of(10, 0));
-        Theme theme = new Theme("방탈출", "설명", "url");
-        Reservation reservation = new Reservation("fizz", LocalDate.of(2999, 5, 2), reservationTime, theme);
-
-        reservations.create(reservation, LocalDateTime.now());
-
-        assertThatThrownBy(() -> reservations.create(reservation, LocalDateTime.now()))
-                .isInstanceOf(ReservationAlreadyExistsException.class);
-    }
 
     @Test
     void unavailableTimesTest() {
@@ -36,8 +19,7 @@ public class ReservationsTest {
         Reservation reservation1 = new Reservation("fizz", LocalDate.of(2999, 5, 2), reservationTime1, theme);
         Reservation reservation2 = new Reservation("fizz", LocalDate.of(2999, 5, 2), reservationTime2, theme);
 
-        reservations.create(reservation1, LocalDateTime.now());
-        reservations.create(reservation2, LocalDateTime.now());
+        Reservations reservations = new Reservations(List.of(reservation1, reservation2));
 
         List<ReservationTime> unavailableTimes = reservations.unavailableTimes(LocalDate.of(2999, 5, 2),
                 LocalDateTime.now(), theme);
@@ -57,14 +39,12 @@ public class ReservationsTest {
         Reservation reservation2 = new Reservation("fizz", LocalDate.of(2999, 5, 3), reservationTime, theme1);
         Reservation reservation3 = new Reservation("fizz", LocalDate.of(2999, 5, 3), reservationTime, theme2);
 
-        reservations.create(reservation1, LocalDateTime.now());
-        reservations.create(reservation2, LocalDateTime.now());
-        reservations.create(reservation3, LocalDateTime.now());
+        Reservations reservations = new Reservations(List.of(reservation1, reservation2, reservation3));
 
         List<Theme> ranking = reservations.themeRankingByReservationCounts(new RankingPeriod(
                 LocalDate.of(2999, 5, 2),
                 LocalDate.of(2999, 5, 3),
-                LocalDate.of(2999, 5, 4)), 10);
+                LocalDate.of(2999, 5, 4)));
 
         assertThat(ranking.get(0)).isEqualTo(theme1);
         assertThat(ranking.get(1)).isEqualTo(theme2);

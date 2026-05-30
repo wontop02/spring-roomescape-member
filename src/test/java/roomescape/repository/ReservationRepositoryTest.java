@@ -9,20 +9,18 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.RowMapper;
 import roomescape.domain.Reservation;
-import roomescape.entity.ReservationEntity;
-import roomescape.entity.ReservationTimeEntity;
-import roomescape.entity.ThemeEntity;
+import roomescape.domain.ReservationTime;
+import roomescape.domain.Reservations;
+import roomescape.domain.Theme;
 
 public class ReservationRepositoryTest extends RepositoryTest {
 
     @Autowired
     private ReservationRepository reservationRepository;
 
-    private ReservationTimeEntity reservationTimeEntity;
-
-    private ThemeEntity themeEntity;
+    private ReservationTime reservationTime;
+    private Theme theme;
 
     @BeforeEach
     void beforeEach() {
@@ -34,19 +32,17 @@ public class ReservationRepositoryTest extends RepositoryTest {
         String insertThemeSql = "INSERT INTO `theme` (`name`, `description`, `thumbnail_url`) VALUES (?, ?, ?)";
         jdbcTemplate.update(insertThemeSql, "방탈출1", "방탈출1 설명", "url.jpg");
 
-        reservationTimeEntity = new ReservationTimeEntity(1L, LocalTime.of(10, 0));
-        themeEntity = new ThemeEntity(1L, "방탈출1", "방탈출1 설명", "url.jpg");
+        reservationTime = new ReservationTime(1L, LocalTime.of(10, 0));
+        theme = new Theme(1L, "방탈출1", "방탈출1 설명", "url.jpg");
     }
 
     @Test
     void createTest() {
-        Reservation reservation = new Reservation("fizz", LocalDate.of(2026, 5, 2),
-                reservationTimeEntity.toDomain(), themeEntity.toDomain());
+        Reservation reservation = new Reservation("fizz", LocalDate.of(2026, 5, 2), reservationTime, theme);
 
-        ReservationEntity reservationEntity = reservationRepository.create(reservation, reservationTimeEntity,
-                themeEntity);
+        Reservation createdReservation = reservationRepository.create(reservation);
 
-        assertThat(reservationEntity.getId()).isEqualTo(1L);
+        assertThat(createdReservation.getId()).isEqualTo(1L);
     }
 
     @Test
@@ -54,7 +50,7 @@ public class ReservationRepositoryTest extends RepositoryTest {
         String sql = "INSERT INTO `reservation` (`name`, `date`, `time_id`, `theme_id`) VALUES (?, ?, ?, ?)";
         jdbcTemplate.update(sql, "fizz", "2026-05-02", 1L, 1L);
 
-        ReservationEntity reservation = reservationRepository.readById(1L).get();
+        Reservation reservation = reservationRepository.readById(1L).orElseThrow();
 
         assertThat(reservation.getName()).isEqualTo("fizz");
         assertThat(reservation.getDate()).isEqualTo(LocalDate.of(2026, 5, 2));
@@ -69,13 +65,14 @@ public class ReservationRepositoryTest extends RepositoryTest {
         jdbcTemplate.update(sql, "tree", "2026-05-02", 2L, 1L);
         jdbcTemplate.update(sql, "fizz", "2026-05-02", 3L, 1L);
 
-        List<ReservationEntity> reservations = reservationRepository.readByName("fizz");
+        Reservations reservations = reservationRepository.readByName("fizz");
 
-        assertThat(reservations.size()).isEqualTo(2);
-        assertThat(reservations.get(0).getName()).isEqualTo("fizz");
-        assertThat(reservations.get(1).getName()).isEqualTo("fizz");
+        List<Reservation> reservationList = reservations.stream().toList();
+        assertThat(reservationList.size()).isEqualTo(2);
+        assertThat(reservationList.get(0).getName()).isEqualTo("fizz");
+        assertThat(reservationList.get(1).getName()).isEqualTo("fizz");
 
-        assertThat(reservationRepository.readByName("user").size()).isEqualTo(0);
+        assertThat(reservationRepository.readByName("user").stream().toList().size()).isEqualTo(0);
     }
 
     @Test
@@ -84,9 +81,9 @@ public class ReservationRepositoryTest extends RepositoryTest {
         jdbcTemplate.update(sql, "fizz", "2026-05-02", 1L, 1L);
         jdbcTemplate.update(sql, "fizz", "2026-05-02", 2L, 1L);
 
-        List<ReservationEntity> reservations = reservationRepository.readAll();
+        Reservations reservations = reservationRepository.readAll();
 
-        assertThat(reservations.size()).isEqualTo(2);
+        assertThat(reservations.stream().toList().size()).isEqualTo(2);
     }
 
     @Test
@@ -94,46 +91,18 @@ public class ReservationRepositoryTest extends RepositoryTest {
         String sql = "INSERT INTO `reservation` (`name`, `date`, `time_id`, `theme_id`) VALUES (?, ?, ?, ?)";
         jdbcTemplate.update(sql, "fizz", "2026-05-02", 1L, 1L);
 
-        LocalDate now = LocalDate.now();
+        LocalDate newDate = LocalDate.now().plusDays(1);
+        ReservationTime newReservationTime = new ReservationTime(2L, LocalTime.of(11, 0));
+        Reservation updatedReservation = new Reservation(1L, "fizz", newDate, newReservationTime, theme);
 
-        Long id = 1L;
-        LocalDate newDate = now.plusDays(1);
-        Long newTimeId = 2L;
+        reservationRepository.update(updatedReservation);
 
-        reservationRepository.update(id, newDate, 2L);
+        Reservation reservation = reservationRepository.readById(1L).orElseThrow();
 
-        String selectSql =
-                "SELECT r.id, r.name, r.date, t.id as time_id, t.start_at as time_value, th.id as theme_id, th.name as theme_name, th.description as theme_description, th.thumbnail_url as theme_thumbnail_url "
-                        + "FROM `reservation` r "
-                        + "INNER JOIN `reservation_time` t ON r.time_id = t.id "
-                        + "INNER JOIN `theme` th ON r.theme_id = th.id "
-                        + "WHERE r.id = (?)";
-
-        ReservationEntity reservation = jdbcTemplate.queryForObject(selectSql, reservationRowMapper(), id);
-
-        org.junit.jupiter.api.Assertions.assertNotNull(reservation);
         assertThat(reservation.getName()).isEqualTo("fizz");
         assertThat(reservation.getDate()).isEqualTo(newDate);
-        assertThat(reservation.getTime().getId()).isEqualTo(newTimeId);
+        assertThat(reservation.getTime().getId()).isEqualTo(2L);
         assertThat(reservation.getTheme().getId()).isEqualTo(1L);
-    }
-
-    private static RowMapper<ReservationEntity> reservationRowMapper() {
-        return (resultSet, rowNum) -> {
-            Long id = resultSet.getLong("id");
-            String name = resultSet.getString("name");
-            LocalDate date = resultSet.getDate("date").toLocalDate();
-            Long timeId = resultSet.getLong("time_id");
-            LocalTime timeValue = resultSet.getTime("time_value").toLocalTime();
-            Long themeId = resultSet.getLong("theme_id");
-            String themeName = resultSet.getString("theme_name");
-            String themeDescription = resultSet.getString("theme_description");
-            String themeThumbnailUrl = resultSet.getString("theme_thumbnail_url");
-
-            ReservationTimeEntity reservationTimeEntity = new ReservationTimeEntity(timeId, timeValue);
-            ThemeEntity theme = new ThemeEntity(themeId, themeName, themeDescription, themeThumbnailUrl);
-            return new ReservationEntity(id, name, date, reservationTimeEntity, theme);
-        };
     }
 
     @Test
@@ -141,7 +110,8 @@ public class ReservationRepositoryTest extends RepositoryTest {
         String sql = "INSERT INTO `reservation` (`name`, `date`, `time_id`, `theme_id`) VALUES (?, ?, ?, ?)";
         jdbcTemplate.update(sql, "fizz", "2026-05-02", 1L, 1L);
 
-        reservationRepository.delete(1L);
+        Reservation reservation = new Reservation(1L, "fizz", LocalDate.of(2026, 5, 2), reservationTime, theme);
+        reservationRepository.delete(reservation);
 
         String readReservationCountSql = "SELECT COUNT(*) FROM `reservation`";
         int count = jdbcTemplate.queryForObject(readReservationCountSql, Integer.class);

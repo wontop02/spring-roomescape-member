@@ -3,7 +3,6 @@ package roomescape.repository;
 import java.util.List;
 import java.util.Optional;
 import roomescape.domain.Theme;
-import roomescape.entity.ThemeEntity;
 
 public class FakeThemeRepository implements ThemeRepository {
 
@@ -17,26 +16,24 @@ public class FakeThemeRepository implements ThemeRepository {
     }
 
     @Override
-    public ThemeEntity create(Theme theme) {
-        ThemeEntity themeEntity = new ThemeEntity(++currentId, theme.getName(), theme.getDescription(),
-                theme.getThumbnailUrl());
-        fakeDatabase.create(THEME_TABLE, themeEntity.getId(), themeEntity);
-
-        return themeEntity;
+    public Theme create(Theme theme) {
+        Theme themeWithId = new Theme(++currentId, theme.getName(), theme.getDescription(), theme.getThumbnailUrl());
+        fakeDatabase.create(THEME_TABLE, themeWithId.getId(), themeWithId);
+        return themeWithId;
     }
 
     @Override
-    public Optional<ThemeEntity> read(Long id) {
-        return Optional.ofNullable(fakeDatabase.read(THEME_TABLE, id, ThemeEntity.class));
+    public Optional<Theme> readById(Long id) {
+        return Optional.ofNullable(fakeDatabase.read(THEME_TABLE, id, Theme.class));
     }
 
     @Override
-    public List<ThemeEntity> readAll() {
-        return fakeDatabase.readAll(THEME_TABLE, ThemeEntity.class);
+    public List<Theme> readAll() {
+        return fakeDatabase.readAll(THEME_TABLE, Theme.class);
     }
 
     @Override
-    public void delete(Long id) {
-        fakeDatabase.delete(THEME_TABLE, id);
+    public void delete(Theme theme) {
+        fakeDatabase.delete(THEME_TABLE, theme.getId());
     }
 }
