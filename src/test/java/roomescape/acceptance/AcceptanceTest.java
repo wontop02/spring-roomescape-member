@@ -16,7 +16,7 @@ public class AcceptanceTest {
 
     public static final String NOW_DATE = "2026-05-02";
     public static final String FUTURE_DATE = "2026-05-03";
-    public static final String FUTURE_TIME = "10:00";
+    public static final String FUTURE_TIME = "12:00";
 
     @Autowired
     private DatabaseCleanUp databaseCleanUp;

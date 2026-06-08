@@ -21,6 +21,7 @@ import roomescape.exception.custom.RankingPeriodEndDateBeforeStartDateException;
 import roomescape.exception.custom.RankingPeriodExceedsLimitException;
 import roomescape.exception.custom.RankingPeriodPastDateOnlyException;
 import roomescape.exception.custom.ReservationAlreadyExistsException;
+import roomescape.exception.custom.ReservationModificationTimeExpiredException;
 import roomescape.exception.custom.ReservationNotExistsException;
 import roomescape.exception.custom.ReservationTimeAlreadyExistsException;
 import roomescape.exception.custom.ReservationTimeNotExistsException;
@@ -112,6 +113,16 @@ public class GlobalExceptionHandler {
 
         return new ErrorResponse(HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.name(),
                 "지나간 시간의 예약은 수정, 삭제할 수 없습니다.");
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(ReservationModificationTimeExpiredException.class)
+    public ErrorResponse handleReservationModificationTimeExpiredException(
+            ReservationModificationTimeExpiredException exception) {
+        log.warn("[Invalid Request Error]", exception);
+
+        return new ErrorResponse(HttpStatus.BAD_REQUEST.value(), HttpStatus.BAD_REQUEST.name(),
+                "예약 수정, 삭제가 가능한 시간이 지났습니다.");
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)

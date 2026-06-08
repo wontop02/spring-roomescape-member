@@ -1,5 +1,6 @@
 package roomescape.domain;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -7,6 +8,7 @@ import java.util.Objects;
 import roomescape.exception.custom.CannotCreatePastReservationException;
 import roomescape.exception.custom.CannotModifyPastReservationException;
 import roomescape.exception.custom.InvalidDomainValueException;
+import roomescape.exception.custom.ReservationModificationTimeExpiredException;
 
 public class Reservation {
 
@@ -58,6 +60,17 @@ public class Reservation {
     public void validateAvailableModify(LocalDateTime now) {
         if (isPast(now)) {
             throw new CannotModifyPastReservationException();
+        }
+        LocalDateTime reservationDateTime = LocalDateTime.of(this.date, this.time.getStartAt());
+
+        boolean isWeekend = date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY;
+        long limitHours = 1;
+        if (isWeekend) {
+            limitHours = 2;
+        }
+
+        if (reservationDateTime.isBefore(now.plusHours(limitHours))) {
+            throw new ReservationModificationTimeExpiredException();
         }
     }
 

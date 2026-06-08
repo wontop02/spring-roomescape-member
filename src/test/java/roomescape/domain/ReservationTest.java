@@ -12,6 +12,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import roomescape.exception.custom.CannotCreatePastReservationException;
 import roomescape.exception.custom.CannotModifyPastReservationException;
 import roomescape.exception.custom.InvalidDomainValueException;
+import roomescape.exception.custom.ReservationModificationTimeExpiredException;
 
 public class ReservationTest {
 
@@ -59,7 +60,7 @@ public class ReservationTest {
     }
 
     @Test
-    void validateAvailableModifyExceptionTest() {
+    void cannotModifyPastReservationExceptionTest() {
         ReservationTime reservationTime = new ReservationTime(LocalTime.of(10, 0));
         Theme theme = new Theme("방탈출1", "방탈출1 설명", "url.jpg");
         Reservation pastReservation = new Reservation("fizz", LocalDate.of(2025, 5, 2),
@@ -67,6 +68,16 @@ public class ReservationTest {
         assertThatThrownBy(
                 () -> pastReservation.validateAvailableModify(LocalDateTime.of(2026, 5, 19, 10, 0)))
                 .isInstanceOf(CannotModifyPastReservationException.class);
+    }
+
+    @Test
+    void modificationTimeExpiredExceptionTest() {
+        ReservationTime reservationTime = new ReservationTime(LocalTime.of(10, 0));
+        Theme theme = new Theme("방탈출1", "방탈출1 설명", "url.jpg");
+        Reservation reservation = new Reservation("fizz", LocalDate.of(2026, 5, 2), reservationTime, theme);
+        assertThatThrownBy(
+                () -> reservation.validateAvailableModify(LocalDateTime.of(2026, 5, 2, 9, 30)))
+                .isInstanceOf(ReservationModificationTimeExpiredException.class);
     }
 
     @Test
