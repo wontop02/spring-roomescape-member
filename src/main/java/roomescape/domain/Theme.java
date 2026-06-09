@@ -1,7 +1,7 @@
 package roomescape.domain;
 
-import roomescape.exception.CustomInvalidDomainException;
-import roomescape.exception.ErrorCode;
+import java.util.Objects;
+import roomescape.exception.custom.InvalidDomainValueException;
 
 public class Theme {
 
@@ -10,37 +10,27 @@ public class Theme {
     private final String description;
     private final String thumbnailUrl;
 
+    public Theme(String name, String description, String thumbnailUrl) {
+        this(null, name, description, thumbnailUrl);
+    }
+
     public Theme(Long id, String name, String description, String thumbnailUrl) {
         validate(name, description, thumbnailUrl);
-
         this.id = id;
         this.name = name;
         this.description = description;
         this.thumbnailUrl = thumbnailUrl;
     }
 
-    public Theme(String name, String description, String thumbnailUrl) {
-        validate(name, description, thumbnailUrl);
-
-        this.id = null;
-        this.name = name;
-        this.description = description;
-        this.thumbnailUrl = thumbnailUrl;
-    }
-
-    public static Theme of(Long id, Theme theme) {
-        return new Theme(id, theme.name, theme.description, theme.thumbnailUrl);
-    }
-
     private void validate(String name, String description, String thumbnailUrl) {
         if (name == null || name.isBlank()) {
-            throw new CustomInvalidDomainException(ErrorCode.NOT_ALLOW_NAME_NULL);
+            throw new InvalidDomainValueException("테마 이름은 비어 있을 수 없습니다.");
         }
         if (description == null || description.isBlank()) {
-            throw new CustomInvalidDomainException(ErrorCode.NOT_ALLOW_DESCRIPTION_NULL);
+            throw new InvalidDomainValueException("테마 설명은 비어 있을 수 없습니다.");
         }
         if (thumbnailUrl == null || thumbnailUrl.isBlank()) {
-            throw new CustomInvalidDomainException(ErrorCode.NOT_ALLOW_THUMBNAIL_NULL);
+            throw new InvalidDomainValueException("테마 썸네일은 비어 있을 수 없습니다.");
         }
     }
 
@@ -58,5 +48,20 @@ public class Theme {
 
     public String getThumbnailUrl() {
         return thumbnailUrl;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (object == null || getClass() != object.getClass()) {
+            return false;
+        }
+        Theme theme = (Theme) object;
+        return Objects.equals(name, theme.name) && Objects.equals(description, theme.description)
+                && Objects.equals(thumbnailUrl, theme.thumbnailUrl);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, description, thumbnailUrl);
     }
 }

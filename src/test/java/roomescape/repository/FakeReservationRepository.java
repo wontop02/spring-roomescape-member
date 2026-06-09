@@ -1,12 +1,10 @@
 package roomescape.repository;
 
-import static roomescape.repository.FakeReservationTimeRepository.RESERVATION_TIME_TABLE;
-
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import roomescape.domain.Reservation;
-import roomescape.domain.ReservationTime;
+import roomescape.domain.Reservations;
 
 public class FakeReservationRepository implements ReservationRepository {
 
@@ -20,10 +18,11 @@ public class FakeReservationRepository implements ReservationRepository {
     }
 
     @Override
-    public Reservation create(Reservation reservationWithoutId) {
-        Reservation reservation = Reservation.of(++currentId, reservationWithoutId);
-        fakeDatabase.create(RESERVATION_TABLE, reservation.getId(), reservation);
-        return reservation;
+    public Reservation create(Reservation reservation) {
+        Reservation reservationWithId = new Reservation(++currentId, reservation.getName(),
+                reservation.getDate(), reservation.getTime(), reservation.getTheme());
+        fakeDatabase.create(RESERVATION_TABLE, reservationWithId.getId(), reservationWithId);
+        return reservationWithId;
     }
 
     @Override
@@ -32,59 +31,45 @@ public class FakeReservationRepository implements ReservationRepository {
     }
 
     @Override
-    public List<Reservation> readByName(String name) {
-        return fakeDatabase.readAll(RESERVATION_TABLE, Reservation.class).stream()
+    public Reservations readByName(String name) {
+        List<Reservation> filtered = fakeDatabase.readAll(RESERVATION_TABLE, Reservation.class).stream()
                 .filter(reservation -> reservation.getName().equals(name))
                 .toList();
+        return new Reservations(filtered);
     }
 
     @Override
-    public List<Reservation> readAll() {
-        return fakeDatabase.readAll(RESERVATION_TABLE, Reservation.class).stream()
-                .toList();
+    public Reservations readAll() {
+        return new Reservations(fakeDatabase.readAll(RESERVATION_TABLE, Reservation.class));
     }
 
     @Override
-    public void update(Long id, LocalDate newDate, Long newTimeId) {
-        Reservation reservation = fakeDatabase.read(RESERVATION_TABLE, id, Reservation.class);
-        ReservationTime newReservationTime = fakeDatabase.read(RESERVATION_TIME_TABLE, newTimeId,
-                ReservationTime.class);
-
-        Reservation updatedReservation = new Reservation(id, reservation.getName(), newDate, newReservationTime,
-                reservation.getTheme());
-
-        fakeDatabase.create(RESERVATION_TABLE, updatedReservation.getId(), Reservation.class);
+    public void update(Reservation reservation) {
+        fakeDatabase.create(RESERVATION_TABLE, reservation.getId(), reservation);
     }
 
     @Override
-    public void delete(Long id) {
-        fakeDatabase.delete(RESERVATION_TABLE, id);
-    }
-
-    @Override
-    public boolean existByDateAndTimeIdAndThemeId(LocalDate date, Long timeId, Long themeId) {
-        List<Reservation> reservations = fakeDatabase.readAll(RESERVATION_TABLE, Reservation.class);
-
-        return reservations.stream()
-                .anyMatch(reservation -> reservation.getDate().equals(date)
-                        && reservation.getTime().getId().equals(timeId)
-                        && reservation.getTheme().getId().equals(themeId));
+    public void delete(Reservation reservation) {
+        fakeDatabase.delete(RESERVATION_TABLE, reservation.getId());
     }
 
     @Override
     public boolean existByTimeId(Long timeId) {
-        List<Reservation> reservations = fakeDatabase.readAll(RESERVATION_TABLE, Reservation.class);
-
-        return reservations.stream()
+        return fakeDatabase.readAll(RESERVATION_TABLE, Reservation.class).stream()
                 .anyMatch(reservation -> reservation.getTime().getId().equals(timeId));
     }
 
     @Override
     public boolean existByThemeId(Long themeId) {
-        List<Reservation> reservations = fakeDatabase.readAll(RESERVATION_TABLE, Reservation.class);
-
-        return reservations.stream()
+        return fakeDatabase.readAll(RESERVATION_TABLE, Reservation.class).stream()
                 .anyMatch(reservation -> reservation.getTheme().getId().equals(themeId));
+    }
 
+    @Override
+    public boolean existBySlot(LocalDate date, Long timeId, Long themeId) {
+        return fakeDatabase.readAll(RESERVATION_TABLE, Reservation.class).stream()
+                .anyMatch(reservation -> reservation.getDate().equals(date)
+                        && reservation.getTime().getId().equals(timeId)
+                        && reservation.getTheme().getId().equals(themeId));
     }
 }

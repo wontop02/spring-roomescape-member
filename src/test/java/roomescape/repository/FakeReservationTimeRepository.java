@@ -1,12 +1,8 @@
 package roomescape.repository;
 
-import static roomescape.repository.FakeReservationRepository.RESERVATION_TABLE;
-
-import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
-import roomescape.domain.Reservation;
 import roomescape.domain.ReservationTime;
 
 public class FakeReservationTimeRepository implements ReservationTimeRepository {
@@ -21,15 +17,14 @@ public class FakeReservationTimeRepository implements ReservationTimeRepository 
     }
 
     @Override
-    public ReservationTime create(ReservationTime reservationTimeWithoutId) {
-        ReservationTime reservationTime = ReservationTime.of(++currentId, reservationTimeWithoutId);
-        fakeDatabase.create(RESERVATION_TIME_TABLE, reservationTime.getId(), reservationTime);
-
-        return reservationTime;
+    public ReservationTime create(ReservationTime reservationTime) {
+        ReservationTime reservationTimeWithId = new ReservationTime(++currentId, reservationTime.getStartAt());
+        fakeDatabase.create(RESERVATION_TIME_TABLE, reservationTimeWithId.getId(), reservationTimeWithId);
+        return reservationTimeWithId;
     }
 
     @Override
-    public Optional<ReservationTime> read(Long id) {
+    public Optional<ReservationTime> readById(Long id) {
         return Optional.ofNullable(fakeDatabase.read(RESERVATION_TIME_TABLE, id, ReservationTime.class));
     }
 
@@ -39,27 +34,13 @@ public class FakeReservationTimeRepository implements ReservationTimeRepository 
     }
 
     @Override
-    public void delete(Long id) {
-        fakeDatabase.delete(RESERVATION_TIME_TABLE, id);
-    }
-
-    @Override
-    public List<Long> reservedTimeIdByDateAndTheme(LocalDate date, Long themeId) {
-        List<Long> reservedTimeId = fakeDatabase.readAll(RESERVATION_TABLE, Reservation.class).stream()
-                .filter(reservation -> reservation.getDate().equals(date) && reservation.getTheme().getId()
-                        .equals(themeId))
-                .map(reservation -> reservation.getTime().getId())
-                .toList();
-
-        return fakeDatabase.readAll(RESERVATION_TIME_TABLE, ReservationTime.class).stream()
-                .map(ReservationTime::getId)
-                .filter(reservedTimeId::contains)
-                .toList();
+    public void delete(ReservationTime reservationTime) {
+        fakeDatabase.delete(RESERVATION_TIME_TABLE, reservationTime.getId());
     }
 
     @Override
     public boolean existByStartAt(LocalTime startAt) {
         return fakeDatabase.readAll(RESERVATION_TIME_TABLE, ReservationTime.class).stream()
-                .anyMatch(reservationTime -> reservationTime.getStartAt().equals(startAt));
+                .anyMatch(rt -> rt.getStartAt().equals(startAt));
     }
 }

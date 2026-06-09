@@ -7,7 +7,7 @@ public record ServiceThemeCreateRequest(
         String description,
         String thumbnailUrl
 ) {
-    public Theme toEntity() {
+    public Theme toTheme() {
         return new Theme(name, description, thumbnailUrl);
     }
 }

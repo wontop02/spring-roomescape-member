@@ -16,24 +16,23 @@ import org.springframework.web.bind.annotation.RestController;
 import roomescape.controller.dto.request.ControllerReservationCreateRequest;
 import roomescape.controller.dto.request.ControllerReservationUpdateRequest;
 import roomescape.controller.dto.response.ControllerReservationResponse;
-import roomescape.service.ReservationService;
+import roomescape.facade.ReservationFacade;
 import roomescape.service.dto.response.ServiceReservationResponse;
 
 @RestController
 @RequestMapping(value = "/reservations")
 public class ReservationController {
 
-    private final ReservationService reservationService;
+    private final ReservationFacade reservationFacade;
 
-    public ReservationController(ReservationService reservationService) {
-        this.reservationService = reservationService;
+    public ReservationController(ReservationFacade reservationFacade) {
+        this.reservationFacade = reservationFacade;
     }
 
     @PostMapping
     public ResponseEntity<ControllerReservationResponse> create(
-            @Valid @RequestBody ControllerReservationCreateRequest request) {
-        ServiceReservationResponse serviceResponse = reservationService.create(
-                request.toServiceReservationRequest());
+            @RequestBody ControllerReservationCreateRequest request) {
+        ServiceReservationResponse serviceResponse = reservationFacade.create(request.toServiceReservationRequest());
         ControllerReservationResponse controllerResponse = ControllerReservationResponse.from(serviceResponse);
         return ResponseEntity.
                 status(HttpStatus.CREATED)
@@ -44,7 +43,7 @@ public class ReservationController {
     public ResponseEntity<List<ControllerReservationResponse>> readByName(
             @RequestParam("name") String name
     ) {
-        List<ServiceReservationResponse> serviceResponses = reservationService.readByName(name);
+        List<ServiceReservationResponse> serviceResponses = reservationFacade.readByName(name);
         List<ControllerReservationResponse> controllerResponses = serviceResponses.stream()
                 .map(ControllerReservationResponse::from)
                 .toList();
@@ -53,7 +52,7 @@ public class ReservationController {
 
     @GetMapping
     public ResponseEntity<List<ControllerReservationResponse>> readAll() {
-        List<ServiceReservationResponse> serviceResponses = reservationService.readAll();
+        List<ServiceReservationResponse> serviceResponses = reservationFacade.readAll();
         List<ControllerReservationResponse> controllerResponse = serviceResponses.stream()
                 .map(ControllerReservationResponse::from)
                 .toList();
@@ -64,7 +63,7 @@ public class ReservationController {
     public ResponseEntity<ControllerReservationResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody ControllerReservationUpdateRequest request) {
-        ServiceReservationResponse serviceResponse = reservationService.update(id,
+        ServiceReservationResponse serviceResponse = reservationFacade.update(id,
                 request.toServiceReservationRequest());
         ControllerReservationResponse controllerResponse = ControllerReservationResponse.from(serviceResponse);
 
@@ -73,7 +72,7 @@ public class ReservationController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        reservationService.delete(id);
+        reservationFacade.delete(id);
         return ResponseEntity
                 .noContent()
                 .build();

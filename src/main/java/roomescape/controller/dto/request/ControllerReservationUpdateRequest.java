@@ -1,8 +1,7 @@
 package roomescape.controller.dto.request;
 
 import java.time.LocalDate;
-import roomescape.exception.CustomInvalidRequestException;
-import roomescape.exception.ErrorCode;
+import roomescape.exception.custom.InvalidRequestArgumentException;
 import roomescape.service.dto.request.ServiceReservationUpdateRequest;
 
 public record ControllerReservationUpdateRequest(
@@ -20,10 +19,10 @@ public record ControllerReservationUpdateRequest(
 
     private void validate(LocalDate date, Long timeId) {
         if (date == null) {
-            throw new CustomInvalidRequestException(ErrorCode.NOT_ALLOW_DATE_NULL);
+            throw new InvalidRequestArgumentException("예약 날짜는 비어 있을 수 없습니다.");
         }
         if (timeId == null) {
-            throw new CustomInvalidRequestException(ErrorCode.NOT_ALLOW_TIME_NULL);
+            throw new InvalidRequestArgumentException("예약 시간은 비어 있을 수 없습니다.");
         }
     }
 }
